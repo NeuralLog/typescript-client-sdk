@@ -8,10 +8,10 @@ import { LogError } from '../errors';
 export class LogsService {
   private baseUrl: string;
   private apiClient: AxiosInstance;
-  
+
   /**
    * Create a new LogsService
-   * 
+   *
    * @param baseUrl Base URL of the logs service
    * @param apiClient Axios instance for making requests
    */
@@ -19,31 +19,54 @@ export class LogsService {
     this.baseUrl = baseUrl;
     this.apiClient = apiClient;
   }
-  
+
+  /**
+   * Get the base URL
+   *
+   * @returns The base URL
+   */
+  public getBaseUrl(): string {
+    return this.baseUrl;
+  }
+
+  /**
+   * Set the base URL
+   *
+   * @param baseUrl The new base URL
+   */
+  public setBaseUrl(baseUrl: string): void {
+    this.baseUrl = baseUrl;
+  }
+
   /**
    * Append a log to the specified log
-   * 
-   * @param logName Log name
-   * @param data Log data
+   *
+   * @param logName Log name (already encrypted by the client)
+   * @param encryptedData Encrypted log data
    * @param resourceToken Resource token
+   * @param searchTokens Optional search tokens for searchable encryption
    * @returns Promise that resolves to the log ID
    */
   public async appendLog(
     logName: string,
-    data: Record<string, any>,
-    resourceToken: string
+    encryptedData: Record<string, any>,
+    resourceToken: string,
+    searchTokens?: string[]
   ): Promise<string> {
     try {
+      // Include search tokens in the request if provided
+      const dataToSend = searchTokens ? { ...encryptedData, searchTokens } : encryptedData;
+
       const response = await this.apiClient.post(
         `${this.baseUrl}/logs/${logName}`,
-        data,
+        dataToSend,
         {
           headers: {
             Authorization: `Bearer ${resourceToken}`
           }
         }
       );
-      
+
       return response.data.logId;
     } catch (error) {
       throw new LogError(
@@ -52,10 +75,10 @@ export class LogsService {
       );
     }
   }
-  
+
   /**
    * Get logs from the specified log
-   * 
+   *
    * @param logName Log name
    * @param limit Maximum number of logs to return
    * @param resourceToken Resource token
@@ -76,7 +99,7 @@ export class LogsService {
           }
         }
       );
-      
+
       return response.data.entries || [];
     } catch (error) {
       throw new LogError(
@@ -85,10 +108,10 @@ export class LogsService {
       );
     }
   }
-  
+
   /**
    * Search logs in the specified log
-   * 
+   *
    * @param logName Log name
    * @param searchTokens Search tokens
    * @param limit Maximum number of results to return
@@ -107,12 +130,12 @@ export class LogsService {
         log_name: logName,
         limit
       };
-      
+
       // Add search tokens
       if (searchTokens.length > 0) {
         params.tokens = searchTokens;
       }
-      
+
       const response = await this.apiClient.get(
         `${this.baseUrl}/search`,
         {
@@ -122,7 +145,7 @@ export class LogsService {
           }
         }
       );
-      
+
       return response.data.results || [];
     } catch (error) {
       throw new LogError(
@@ -131,10 +154,10 @@ export class LogsService {
       );
     }
   }
-  
+
   /**
    * Get all log names
-   * 
+   *
    * @param resourceToken Resource token
    * @returns Promise that resolves to the log names
    */
@@ -148,7 +171,7 @@ export class LogsService {
           }
         }
       );
-      
+
       return response.data.logs || [];
     } catch (error) {
       throw new LogError(
@@ -157,10 +180,10 @@ export class LogsService {
       );
     }
   }
-  
+
   /**
    * Clear a log
-   * 
+   *
    * @param logName Log name
    * @param resourceToken Resource token
    * @returns Promise that resolves when the log is cleared
@@ -183,10 +206,10 @@ export class LogsService {
       );
     }
   }
-  
+
   /**
    * Delete a log
-   * 
+   *
    * @param logName Log name
    * @param resourceToken Resource token
    * @returns Promise that resolves when the log is deleted
@@ -208,10 +231,10 @@ export class LogsService {
       );
     }
   }
-  
+
   /**
    * Get a log name key
-   * 
+   *
    * @returns Promise that resolves to the log name key
    */
   public async getLogNameKey(): Promise<Uint8Array> {
@@ -219,10 +242,10 @@ export class LogsService {
     // from the API key and tenant ID
     return new Uint8Array(32);
   }
-  
+
   /**
    * Encrypt a log name
-   * 
+   *
    * @param logName Log name
    * @returns Promise that resolves to the encrypted log name
    */
@@ -230,10 +253,10 @@ export class LogsService {
     // This is a placeholder - the actual implementation would encrypt the log name
     return `encrypted:${logName}`;
   }
-  
+
   /**
    * Get a resource token
-   * 
+   *
    * @param resource Resource path
    * @returns Promise that resolves to the resource token
    */

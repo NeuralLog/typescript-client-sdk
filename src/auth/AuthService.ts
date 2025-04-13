@@ -22,6 +22,24 @@ export class AuthService {
   }
 
   /**
+   * Get the base URL
+   *
+   * @returns The base URL
+   */
+  public getBaseUrl(): string {
+    return this.baseUrl;
+  }
+
+  /**
+   * Set the base URL
+   *
+   * @param baseUrl The new base URL
+   */
+  public setBaseUrl(baseUrl: string): void {
+    this.baseUrl = baseUrl;
+  }
+
+  /**
    * Login with username and password
    *
    * @param username Username

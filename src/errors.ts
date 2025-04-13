@@ -39,7 +39,9 @@ export type LogErrorCode =
   | 'derive_api_key_failed'
   | 'kek_not_found'
   | 'append_log_failed'
-  | 'migrate_log_names_failed';
+  | 'migrate_log_names_failed'
+  | 'overwrite_log_failed'
+  | 'initialization_failed';
 
 /**
  * Error class for the NeuralLog client

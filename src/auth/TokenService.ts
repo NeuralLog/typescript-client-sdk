@@ -7,10 +7,10 @@ import { LogError } from '../errors';
 export class TokenService {
   private baseUrl: string;
   private apiClient: AxiosInstance;
-  
+
   /**
    * Create a new TokenService
-   * 
+   *
    * @param baseUrl Base URL of the auth service
    * @param apiClient Axios instance for making requests
    */
@@ -18,10 +18,28 @@ export class TokenService {
     this.baseUrl = baseUrl;
     this.apiClient = apiClient;
   }
-  
+
+  /**
+   * Get the base URL
+   *
+   * @returns The base URL
+   */
+  public getBaseUrl(): string {
+    return this.baseUrl;
+  }
+
+  /**
+   * Set the base URL
+   *
+   * @param baseUrl The new base URL
+   */
+  public setBaseUrl(baseUrl: string): void {
+    this.baseUrl = baseUrl;
+  }
+
   /**
    * Get a resource token
-   * 
+   *
    * @param resource Resource path
    * @param authToken Authentication token
    * @returns Promise that resolves to the resource token
@@ -37,7 +55,7 @@ export class TokenService {
           }
         }
       );
-      
+
       return response.data.token;
     } catch (error) {
       throw new LogError(
@@ -46,10 +64,10 @@ export class TokenService {
       );
     }
   }
-  
+
   /**
    * Get a resource token with an API key
-   * 
+   *
    * @param resource Resource path
    * @param apiKey API key
    * @param proof Zero-knowledge proof for the API key
@@ -73,7 +91,7 @@ export class TokenService {
           }
         }
       );
-      
+
       return response.data.token;
     } catch (error) {
       throw new LogError(
@@ -82,10 +100,10 @@ export class TokenService {
       );
     }
   }
-  
+
   /**
    * Verify a resource token
-   * 
+   *
    * @param token Resource token
    * @returns Promise that resolves to true if the token is valid
    */
@@ -95,7 +113,7 @@ export class TokenService {
         `${this.baseUrl}/token/verify`,
         { token }
       );
-      
+
       return response.data.valid === true;
     } catch (error) {
       throw new LogError(

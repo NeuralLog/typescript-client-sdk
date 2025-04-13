@@ -6,7 +6,27 @@ import { EncryptedKEK } from '../types';
  */
 export class CryptoService {
   /**
-   * Convert an ArrayBuffer to Base64
+   * Convert a string to ArrayBuffer
+   *
+   * @param str String
+   * @returns ArrayBuffer
+   */
+  private stringToArrayBuffer(str: string): ArrayBuffer {
+    return new TextEncoder().encode(str);
+  }
+
+  /**
+   * Convert ArrayBuffer to string
+   *
+   * @param buffer ArrayBuffer
+   * @returns String
+   */
+  private arrayBufferToString(buffer: ArrayBuffer): string {
+    return new TextDecoder().decode(buffer);
+  }
+
+  /**
+   * Convert ArrayBuffer to Base64
    *
    * @param buffer ArrayBuffer
    * @returns Base64 string
@@ -14,16 +34,14 @@ export class CryptoService {
   private arrayBufferToBase64(buffer: ArrayBuffer): string {
     const bytes = new Uint8Array(buffer);
     let binary = '';
-
     for (let i = 0; i < bytes.byteLength; i++) {
       binary += String.fromCharCode(bytes[i]);
     }
-
     return btoa(binary);
   }
 
   /**
-   * Convert a Base64 string to ArrayBuffer
+   * Convert Base64 to ArrayBuffer
    *
    * @param base64 Base64 string
    * @returns ArrayBuffer
@@ -31,16 +49,14 @@ export class CryptoService {
   private base64ToArrayBuffer(base64: string): ArrayBuffer {
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
-
     for (let i = 0; i < binary.length; i++) {
       bytes[i] = binary.charCodeAt(i);
     }
-
     return bytes.buffer;
   }
 
   /**
-   * Convert an ArrayBuffer to URL-safe Base64
+   * Convert ArrayBuffer to URL-safe Base64
    *
    * @param buffer ArrayBuffer
    * @returns URL-safe Base64 string
@@ -64,205 +80,6 @@ export class CryptoService {
       .replace(/_/g, '/');
 
     return this.base64ToArrayBuffer(base64);
-  }
-
-  /**
-   * Encrypt log data
-   *
-   * @param data Log data
-   * @param logKey Log encryption key
-   * @returns Promise that resolves to the encrypted log data
-   */
-  public async encryptLogData(data: any, logKey: Uint8Array): Promise<Record<string, any>> {
-    try {
-      // Convert data to string
-      const dataString = typeof data === 'string' ? data : JSON.stringify(data);
-      const dataBuffer = new TextEncoder().encode(dataString);
-
-      // Import log key
-      const cryptoKey = await crypto.subtle.importKey(
-        'raw',
-        logKey,
-        { name: 'AES-GCM', length: 256 },
-        false,
-        ['encrypt']
-      );
-
-      // Generate IV
-      const iv = crypto.getRandomValues(new Uint8Array(12));
-
-      // Encrypt data
-      const encryptedData = await crypto.subtle.encrypt(
-        {
-          name: 'AES-GCM',
-          iv,
-          tagLength: 128
-        },
-        cryptoKey,
-        dataBuffer
-      );
-
-      // Convert to Base64
-      const encryptedDataBase64 = this.arrayBufferToBase64(encryptedData);
-      const ivBase64 = this.arrayBufferToBase64(iv);
-
-      // Return encrypted data
-      return {
-        encrypted: true,
-        algorithm: 'aes-256-gcm',
-        iv: ivBase64,
-        data: encryptedDataBase64
-      };
-    } catch (error) {
-      throw new LogError(
-        `Failed to encrypt log data: ${error instanceof Error ? error.message : String(error)}`,
-        'encrypt_log_data_failed'
-      );
-    }
-  }
-
-  /**
-   * Decrypt log data
-   *
-   * @param encryptedData Encrypted log data
-   * @param logKey Log encryption key
-   * @returns Promise that resolves to the decrypted log data
-   */
-  public async decryptLogData(encryptedData: Record<string, any>, logKey: Uint8Array): Promise<any> {
-    try {
-      // Import log key
-      const cryptoKey = await crypto.subtle.importKey(
-        'raw',
-        logKey,
-        { name: 'AES-GCM', length: 256 },
-        false,
-        ['decrypt']
-      );
-
-      // Get IV and encrypted data
-      const iv = this.base64ToArrayBuffer(encryptedData.iv);
-      const data = this.base64ToArrayBuffer(encryptedData.data);
-
-      // Decrypt data
-      const decryptedData = await crypto.subtle.decrypt(
-        {
-          name: 'AES-GCM',
-          iv,
-          tagLength: 128
-        },
-        cryptoKey,
-        data
-      );
-
-      // Convert to string
-      const decryptedString = new TextDecoder().decode(decryptedData);
-
-      // Parse JSON
-      try {
-        return JSON.parse(decryptedString);
-      } catch {
-        return decryptedString;
-      }
-    } catch (error) {
-      throw new LogError(
-        `Failed to decrypt log data: ${error instanceof Error ? error.message : String(error)}`,
-        'decrypt_log_data_failed'
-      );
-    }
-  }
-
-  /**
-   * Generate search tokens
-   *
-   * @param query Search query
-   * @param searchKey Search key
-   * @returns Promise that resolves to the search tokens
-   */
-  public async generateSearchTokens(query: string, searchKey: Uint8Array): Promise<string[]> {
-    try {
-      // Import search key
-      const cryptoKey = await crypto.subtle.importKey(
-        'raw',
-        searchKey,
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign']
-      );
-
-      // Split query into tokens
-      const tokens = query.toLowerCase().split(/\s+/);
-
-      // Generate search tokens
-      const searchTokens = await Promise.all(
-        tokens.map(async (token) => {
-          // Generate token hash
-          const tokenBuffer = await crypto.subtle.sign(
-            'HMAC',
-            cryptoKey,
-            new TextEncoder().encode(token)
-          );
-
-          // Convert to Base64
-          return this.arrayBufferToBase64Url(tokenBuffer);
-        })
-      );
-
-      return searchTokens;
-    } catch (error) {
-      throw new LogError(
-        `Failed to generate search tokens: ${error instanceof Error ? error.message : String(error)}`,
-        'generate_search_tokens_failed'
-      );
-    }
-  }
-
-  /**
-   * Encrypt log name
-   *
-   * @param logName Log name
-   * @param logNameKey Log name encryption key
-   * @returns Promise that resolves to the encrypted log name
-   */
-  public async encryptLogName(logName: string, logNameKey: Uint8Array): Promise<string> {
-    try {
-      // Import log name key
-      const cryptoKey = await crypto.subtle.importKey(
-        'raw',
-        logNameKey,
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign']
-      );
-
-      // Generate log name hash
-      const logNameBuffer = await crypto.subtle.sign(
-        'HMAC',
-        cryptoKey,
-        new TextEncoder().encode(logName)
-      );
-
-      // Convert to Base64URL
-      return this.arrayBufferToBase64Url(logNameBuffer);
-    } catch (error) {
-      throw new LogError(
-        `Failed to encrypt log name: ${error instanceof Error ? error.message : String(error)}`,
-        'encrypt_log_name_failed'
-      );
-    }
-  }
-
-  /**
-   * Decrypt log name
-   *
-   * @param encryptedLogName Encrypted log name
-   * @param logNameKey Log name encryption key
-   * @returns Promise that resolves to the decrypted log name
-   */
-  public async decryptLogName(encryptedLogName: string, logNameKey: Uint8Array): Promise<string> {
-    // Note: This is a placeholder. In a real implementation, we would need to store a mapping
-    // of encrypted log names to original log names, as the encryption is one-way (HMAC).
-    // For now, we'll just return the encrypted log name.
-    return encryptedLogName;
   }
 
   /**

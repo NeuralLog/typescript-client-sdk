@@ -9,26 +9,42 @@ import { LogError } from '../errors';
 import { EncryptedKEK, ApiKeyPermission, ApiKeyInfo } from '../types';
 
 /**
+ * Tenant endpoints returned by the registry
+ */
+export interface TenantEndpoints {
+  tenantId: string;
+  authUrl: string;
+  serverUrl: string;
+  webUrl: string;
+  apiVersion: string;
+}
+
+/**
  * NeuralLog client configuration
  */
 export interface NeuralLogClientConfig {
   /**
    * Tenant ID
    */
-  tenantId?: string;
+  tenantId: string;
 
   /**
-   * API URL
+   * Registry URL (optional - will be constructed from tenantId if not provided)
+   */
+  registryUrl?: string;
+
+  /**
+   * API URL (optional - will be fetched from registry if not provided)
    */
   apiUrl?: string;
 
   /**
-   * Auth service URL
+   * Auth service URL (optional - will be fetched from registry if not provided)
    */
   authUrl?: string;
 
   /**
-   * Logs service URL
+   * Logs service URL (optional - will be fetched from registry if not provided)
    */
   logsUrl?: string;
 }
@@ -42,6 +58,8 @@ export interface NeuralLogClientConfig {
  */
 export class NeuralLogClient {
   private tenantId: string;
+  private registryUrl?: string;
+  private webUrl?: string;
   private apiClient: AxiosInstance;
   private authService: AuthService;
   private logsService: LogsService;
@@ -55,14 +73,20 @@ export class NeuralLogClient {
   private userId: string | null = null;
   private authenticated: boolean = false;
   private authToken: string | null = null;
+  private endpointsInitialized: boolean = false;
 
   /**
    * Create a new NeuralLogClient
    *
    * @param config Client configuration
    */
-  constructor(config: NeuralLogClientConfig = {}) {
-    this.tenantId = config.tenantId || 'default';
+  constructor(config: NeuralLogClientConfig) {
+    if (!config.tenantId) {
+      throw new Error('Tenant ID is required');
+    }
+
+    this.tenantId = config.tenantId;
+    this.registryUrl = config.registryUrl;
 
     // Create API client
     this.apiClient = axios.create({
@@ -73,8 +97,9 @@ export class NeuralLogClient {
       }
     });
 
-    // Create services
+    // Create services with default URLs that will be updated during initialization
     const authUrl = config.authUrl || 'http://localhost:3000';
+    const logsUrl = config.logsUrl || 'http://localhost:3030';
 
     this.authService = new AuthService(
       authUrl,
@@ -82,7 +107,7 @@ export class NeuralLogClient {
     );
 
     this.logsService = new LogsService(
-      config.logsUrl || 'http://localhost:3030',
+      logsUrl,
       this.apiClient
     );
 
@@ -102,6 +127,89 @@ export class NeuralLogClient {
   }
 
   /**
+   * Initialize the client by fetching endpoints from the registry if needed
+   */
+  public async initialize(): Promise<void> {
+    if (this.endpointsInitialized) {
+      return;
+    }
+
+    // If all URLs are already provided and registryUrl is not set, skip registry lookup
+    if (!this.registryUrl && this.authService.getBaseUrl() && this.logsService.getBaseUrl()) {
+      console.debug('Using provided endpoints');
+      this.endpointsInitialized = true;
+      return;
+    }
+
+    try {
+      // If no registry URL is provided, construct a default one
+      if (!this.registryUrl) {
+        this.registryUrl = `https://registry.${this.tenantId}.neurallog.app`;
+        console.debug(`Using default registry URL: ${this.registryUrl}`);
+      }
+
+      // Fetch tenant endpoints from registry
+      console.debug(`Fetching endpoints from registry: ${this.registryUrl}`);
+      const response = await axios.get<TenantEndpoints>(`${this.registryUrl}/endpoints`);
+
+      if (response.status !== 200) {
+        throw new Error(`Failed to fetch tenant endpoints: ${response.statusText}`);
+      }
+
+      const endpoints = response.data;
+
+      // Update services with endpoints
+      this.authService.setBaseUrl(endpoints.authUrl);
+      this.logsService.setBaseUrl(endpoints.serverUrl);
+      this.kekService.setBaseUrl(endpoints.authUrl);
+      this.tokenService.setBaseUrl(endpoints.authUrl);
+      this.webUrl = endpoints.webUrl;
+
+      console.debug('Endpoints initialized', {
+        authUrl: endpoints.authUrl,
+        serverUrl: endpoints.serverUrl,
+        webUrl: endpoints.webUrl,
+        apiVersion: endpoints.apiVersion
+      });
+
+      this.endpointsInitialized = true;
+    } catch (error) {
+      console.error('Failed to initialize client', error);
+      throw new LogError(
+        `Failed to initialize client: ${error instanceof Error ? error.message : String(error)}`,
+        'initialization_failed'
+      );
+    }
+  }
+
+  /**
+   * Get the auth service URL
+   *
+   * @returns The auth service URL
+   */
+  public getAuthUrl(): string {
+    return this.authService.getBaseUrl();
+  }
+
+  /**
+   * Get the server URL
+   *
+   * @returns The server URL
+   */
+  public getServerUrl(): string {
+    return this.logsService.getBaseUrl();
+  }
+
+  /**
+   * Get the web URL
+   *
+   * @returns The web URL
+   */
+  public getWebUrl(): string {
+    return this.webUrl || '';
+  }
+
+  /**
    * Authenticate with username and password
    *
    * @param username Username
@@ -110,6 +218,9 @@ export class NeuralLogClient {
    */
   public async authenticateWithPassword(username: string, password: string): Promise<boolean> {
     try {
+      // Ensure endpoints are initialized
+      await this.initialize();
+
       // Authenticate with the auth service
       const authResult = await this.authService.login(username, password);
 
@@ -174,6 +285,9 @@ export class NeuralLogClient {
    */
   public async authenticateWithApiKey(apiKey: string): Promise<boolean> {
     try {
+      // Ensure endpoints are initialized
+      await this.initialize();
+
       // Generate zero-knowledge proof for API key
       const proof = await this.cryptoService.generateApiKeyProof(apiKey);
 
@@ -220,12 +334,19 @@ export class NeuralLogClient {
     this.checkAuthentication();
 
     try {
+      // Ensure endpoints are initialized
+      await this.initialize();
+
       // Encrypt log name
       const encryptedLogName = await this.encryptLogName(logName);
 
       // Encrypt data
       const logKey = await this.keyHierarchy.deriveLogEncryptionKey(this.apiKey!, this.tenantId, logName);
       const encryptedData = await this.cryptoService.encryptLogData(data, logKey);
+
+      // Generate search tokens
+      const searchKey = await this.keyHierarchy.deriveLogSearchKey(this.apiKey!, this.tenantId, logName);
+      const searchTokens = await this.cryptoService.generateSearchTokens(JSON.stringify(data), searchKey);
 
       // Get resource token
       const resourceToken = await this.authService.getResourceToken(
@@ -235,7 +356,7 @@ export class NeuralLogClient {
       );
 
       // Send log to server
-      return await this.logsService.appendLog(encryptedLogName, encryptedData, resourceToken);
+      return await this.logsService.appendLog(encryptedLogName, encryptedData, resourceToken, searchTokens);
     } catch (error) {
       throw new LogError(
         `Failed to log data: ${error instanceof Error ? error.message : String(error)}`,
@@ -258,6 +379,9 @@ export class NeuralLogClient {
     this.checkAuthentication();
 
     try {
+      // Ensure endpoints are initialized
+      await this.initialize();
+
       // Encrypt log name
       const encryptedLogName = await this.encryptLogName(logName);
 
@@ -311,6 +435,9 @@ export class NeuralLogClient {
     this.checkAuthentication();
 
     try {
+      // Ensure endpoints are initialized
+      await this.initialize();
+
       // Encrypt log name
       const encryptedLogName = await this.encryptLogName(logName);
 
@@ -358,6 +485,9 @@ export class NeuralLogClient {
     this.checkAuthentication();
 
     try {
+      // Ensure endpoints are initialized
+      await this.initialize();
+
       // Get resource token
       const resourceToken = await this.authService.getResourceToken(
         this.apiKey!,
@@ -392,6 +522,9 @@ export class NeuralLogClient {
     this.checkAuthentication();
 
     try {
+      // Ensure endpoints are initialized
+      await this.initialize();
+
       // Encrypt log name
       const encryptedLogName = await this.encryptLogName(logName);
 
@@ -422,6 +555,9 @@ export class NeuralLogClient {
     this.checkAuthentication();
 
     try {
+      // Ensure endpoints are initialized
+      await this.initialize();
+
       // Encrypt log name
       const encryptedLogName = await this.encryptLogName(logName);
 
@@ -438,6 +574,30 @@ export class NeuralLogClient {
       throw new LogError(
         `Failed to delete log: ${error instanceof Error ? error.message : String(error)}`,
         'delete_log_failed'
+      );
+    }
+  }
+
+  /**
+   * Overwrite a log (clear and add new entries)
+   *
+   * @param logName Log name
+   * @param data Log data
+   * @returns Promise that resolves to the log ID
+   */
+  public async overwriteLog(logName: string, data: Record<string, any>): Promise<string> {
+    this.checkAuthentication();
+
+    try {
+      // Clear the log first
+      await this.clearLog(logName);
+
+      // Then log the new data
+      return await this.log(logName, data);
+    } catch (error) {
+      throw new LogError(
+        `Failed to overwrite log: ${error instanceof Error ? error.message : String(error)}`,
+        'overwrite_log_failed'
       );
     }
   }
@@ -530,6 +690,9 @@ export class NeuralLogClient {
     this.checkAuthentication();
 
     try {
+      // Ensure endpoints are initialized
+      await this.initialize();
+
       if (!this.authToken) {
         throw new LogError('Auth token not available', 'not_authenticated');
       }
@@ -589,6 +752,9 @@ export class NeuralLogClient {
     this.checkAuthentication();
 
     try {
+      // Ensure endpoints are initialized
+      await this.initialize();
+
       if (!this.authToken) {
         throw new LogError('Auth token not available', 'not_authenticated');
       }
@@ -613,6 +779,9 @@ export class NeuralLogClient {
     this.checkAuthentication();
 
     try {
+      // Ensure endpoints are initialized
+      await this.initialize();
+
       if (!this.authToken) {
         throw new LogError('Auth token not available', 'not_authenticated');
       }
@@ -637,6 +806,9 @@ export class NeuralLogClient {
     this.checkAuthentication();
 
     try {
+      // Ensure endpoints are initialized
+      await this.initialize();
+
       // Get token from token service
       if (this.authToken) {
         return await this.tokenService.getResourceToken(resource, this.authToken);

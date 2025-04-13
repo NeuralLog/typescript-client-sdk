@@ -8,10 +8,10 @@ import { EncryptedKEK } from '../types';
 export class KekService {
   private baseUrl: string;
   private apiClient: AxiosInstance;
-  
+
   /**
    * Create a new KekService
-   * 
+   *
    * @param baseUrl Base URL of the auth service
    * @param apiClient Axios instance for making requests
    */
@@ -19,10 +19,28 @@ export class KekService {
     this.baseUrl = baseUrl;
     this.apiClient = apiClient;
   }
-  
+
+  /**
+   * Get the base URL
+   *
+   * @returns The base URL
+   */
+  public getBaseUrl(): string {
+    return this.baseUrl;
+  }
+
+  /**
+   * Set the base URL
+   *
+   * @param baseUrl The new base URL
+   */
+  public setBaseUrl(baseUrl: string): void {
+    this.baseUrl = baseUrl;
+  }
+
   /**
    * Get encrypted KEK
-   * 
+   *
    * @param authToken Authentication token
    * @returns Promise that resolves to the encrypted KEK or null if not found
    */
@@ -36,23 +54,23 @@ export class KekService {
           }
         }
       );
-      
+
       return response.data;
     } catch (error: any) {
       if (error.response && error.response.status === 404) {
         return null;
       }
-      
+
       throw new LogError(
         `Failed to get encrypted KEK: ${error instanceof Error ? error.message : String(error)}`,
         'get_encrypted_kek_failed'
       );
     }
   }
-  
+
   /**
    * Create encrypted KEK
-   * 
+   *
    * @param encryptedKEK Encrypted KEK
    * @param authToken Authentication token
    * @returns Promise that resolves when the encrypted KEK is created
@@ -75,10 +93,10 @@ export class KekService {
       );
     }
   }
-  
+
   /**
    * Update encrypted KEK
-   * 
+   *
    * @param encryptedKEK Encrypted KEK
    * @param authToken Authentication token
    * @returns Promise that resolves when the encrypted KEK is updated
