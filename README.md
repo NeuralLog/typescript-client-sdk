@@ -246,6 +246,27 @@ When a KEK is rotated:
 
 When authenticating with an API key, the client generates a zero-knowledge proof that demonstrates knowledge of the API key without revealing it. This proof is used to obtain resource tokens from the auth service.
 
+## Documentation
+
+Detailed documentation is available in the [docs](./docs) directory:
+
+- [API Reference](./docs/api.md)
+- [Configuration](./docs/configuration.md)
+- [Architecture](./docs/architecture.md)
+- [Examples](./docs/examples)
+
+For integration guides and tutorials, visit the [NeuralLog Documentation Site](https://neurallog.github.io/docs/).
+
+## Contributing
+
+Contributions are welcome! Please read our [Contributing Guide](./CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
 ## License
 
 MIT
+
+## Related NeuralLog Components
+
+- [NeuralLog Auth](https://github.com/NeuralLog/auth) - Authentication and authorization
+- [NeuralLog Server](https://github.com/NeuralLog/server) - Core server functionality
+- [NeuralLog Web](https://github.com/NeuralLog/web) - Web interface components
