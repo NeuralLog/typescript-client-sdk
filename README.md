@@ -129,6 +129,39 @@ console.log('API Keys:', apiKeys);
 await client.revokeApiKey('api-key-id');
 ```
 
+### KEK Management
+
+```typescript
+import { NeuralLogClient } from '@neurallog/client-sdk';
+
+// Create client
+const client = new NeuralLogClient({
+  tenantId: 'your-tenant-id',
+  authUrl: 'https://auth.neurallog.com'
+});
+
+// Authenticate with username and password
+await client.authenticateWithPassword('username', 'password');
+
+// Initialize with recovery phrase
+await client.initializeWithRecoveryPhrase('your recovery phrase');
+
+// Get KEK versions
+const versions = await client.getKEKVersions();
+console.log('KEK Versions:', versions);
+
+// Create a new KEK version
+const newVersion = await client.createKEKVersion('Quarterly rotation');
+console.log('New KEK Version:', newVersion);
+
+// Rotate KEK
+const rotatedVersion = await client.rotateKEK('Security incident', ['user-to-remove']);
+console.log('Rotated KEK Version:', rotatedVersion);
+
+// Provision KEK for a user
+await client.provisionKEKForUser('user-id', 'kek-version-id');
+```
+
 ### Resource Tokens
 
 ```typescript
@@ -165,11 +198,11 @@ The NeuralLog Client SDK is designed with security in mind:
 The SDK uses a hierarchical key derivation system:
 
 ```
-Master Secret (derived from username:password)
+Master Secret (derived from tenant ID + recovery phrase or mnemonic)
    |
-   └── Key Encryption Key (KEK) (encrypted with Master Secret)
+   └── Master KEK (derived from Master Secret)
        |
-       └── API Key (derived from KEK + Tenant ID + Key ID)
+       └── Operational KEKs (versioned, derived from Master KEK)
            |
            ├── Log Encryption Key (per log)
            |
@@ -178,16 +211,36 @@ Master Secret (derived from username:password)
            └── Log Name Key
 ```
 
+### KEK Versioning
+
+The SDK supports KEK versioning for key rotation and access control:
+
+- **Active**: The current version used for encryption and decryption
+- **Decrypt-Only**: A previous version that can be used for decryption but not for encryption
+- **Deprecated**: A version that is no longer used and should be phased out
+
+When a log is encrypted, the KEK version used is stored with the encrypted data. When decrypting, the SDK uses the appropriate KEK version.
+
 ### Password Changes
 
 When a user changes their password, the following happens:
 
-1. The client retrieves the encrypted KEK
-2. The client decrypts the KEK using the old password
-3. The client re-encrypts the KEK using the new password
-4. The client updates the encrypted KEK on the server
+1. The client retrieves the encrypted KEK blobs for all KEK versions accessible to the user
+2. The client decrypts the KEK blobs using the old password
+3. The client re-encrypts the KEK blobs using the new password
+4. The client updates the encrypted KEK blobs on the server
 
 This ensures that all derived keys remain the same, even after a password change.
+
+### Key Rotation
+
+When a KEK is rotated:
+
+1. A new KEK version is created with status "active"
+2. All existing active KEK versions are changed to "decrypt-only"
+3. The new KEK version is provisioned to all authorized users
+4. New logs are encrypted with the new KEK version
+5. Old logs can still be decrypted using the appropriate KEK version
 
 ### Zero-Knowledge Proofs
 

@@ -6,21 +6,26 @@ export interface EncryptedKEK {
    * Whether the KEK is encrypted
    */
   encrypted: boolean;
-  
+
   /**
    * Encryption algorithm
    */
   algorithm: string;
-  
+
   /**
    * Initialization vector
    */
   iv: string;
-  
+
   /**
    * Encrypted data
    */
   data: string;
+
+  /**
+   * KEK version identifier
+   */
+  version?: string;
 }
 
 /**
@@ -31,17 +36,17 @@ export interface LoginResponse {
    * Whether the login was successful
    */
   success: boolean;
-  
+
   /**
    * Authentication token
    */
   token: string;
-  
+
   /**
    * User ID
    */
   userId: string;
-  
+
   /**
    * Tenant ID
    */
@@ -74,22 +79,22 @@ export interface ApiKeyInfo {
    * API key ID
    */
   id: string;
-  
+
   /**
    * API key name
    */
   name: string;
-  
+
   /**
    * API key permissions
    */
   permissions: ApiKeyPermission[];
-  
+
   /**
    * API key creation date
    */
   created_at: string;
-  
+
   /**
    * API key last used date
    */
@@ -104,19 +109,54 @@ export interface CreateApiKeyRequest {
    * API key name
    */
   name: string;
-  
+
   /**
    * API key ID
    */
   keyId: string;
-  
+
   /**
    * API key verification hash
    */
   verificationHash: string;
-  
+
   /**
    * API key permissions
    */
   permissions: ApiKeyPermission[];
+}
+
+/**
+ * Serialized secret share for storage or transmission
+ */
+export interface SerializedSecretShare {
+  /**
+   * The x-coordinate of the share
+   */
+  x: number;
+
+  /**
+   * The y-coordinate of the share (the actual share value) as a Base64 string
+   */
+  y: string;
+}
+
+/**
+ * Log encryption information
+ */
+export interface LogEncryptionInfo {
+  /**
+   * Whether the log is encrypted
+   */
+  encrypted: boolean;
+
+  /**
+   * Encryption algorithm
+   */
+  algorithm: string;
+
+  /**
+   * KEK version used to encrypt the log
+   */
+  kekVersion: string;
 }

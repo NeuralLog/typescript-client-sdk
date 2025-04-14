@@ -51,7 +51,7 @@ export interface NeuralLogClientConfig {
    * Logs service URL (optional - will be fetched from registry if not provided)
    */
   logsUrl?: string;
-
+  
   /**
    * API key (optional - for authentication)
    */
@@ -70,22 +70,22 @@ export class NeuralLogClient {
   private registryUrl?: string;
   private webUrl?: string;
   private apiClient: AxiosInstance;
-
+  
   // Services
   private authService: AuthService;
   private logsService: LogsService;
   private cryptoService: CryptoService;
   private kekService: KekService;
   private tokenService: TokenService;
-
+  
   // Managers
   private keyHierarchyManager: KeyHierarchyManager;
   private logManager: LogManager;
   private userManager: UserManager;
   private authManager: AuthManager;
-
+  
   private endpointsInitialized: boolean = false;
-
+  
   /**
    * Create a new NeuralLogClient
    *
@@ -134,13 +134,13 @@ export class NeuralLogClient {
 
     // Create crypto service
     this.cryptoService = new CryptoService();
-
+    
     // Create managers
     this.keyHierarchyManager = new KeyHierarchyManager(this.cryptoService, this.kekService);
     this.logManager = new LogManager(this.cryptoService, this.logsService, this.authService, this.tenantId);
     this.userManager = new UserManager(this.cryptoService, this.authService);
     this.authManager = new AuthManager(this.cryptoService, this.authService, this.tokenService, this.tenantId);
-
+    
     // Initialize with API key if provided
     if (config.apiKey) {
       this.authenticateWithApiKey(config.apiKey).catch(error => {
@@ -148,7 +148,7 @@ export class NeuralLogClient {
       });
     }
   }
-
+  
   /**
    * Initialize the client by fetching endpoints from the registry if needed
    */
@@ -204,7 +204,7 @@ export class NeuralLogClient {
       );
     }
   }
-
+  
   /**
    * Authenticate with username and password
    *
@@ -216,26 +216,26 @@ export class NeuralLogClient {
     try {
       // Ensure endpoints are initialized
       await this.initialize();
-
+      
       // Authenticate with the auth service
       const authResult = await this.authService.login(username, password);
-
+      
       if (authResult.success) {
         // Authenticate with token
         const authenticated = await this.authManager.authenticateWithToken(authResult.token);
-
+        
         if (authenticated) {
           // Extract user ID from token
           const userId = this.tokenService.getUserIdFromToken(authResult.token);
-
+          
           if (userId) {
             this.userManager.setUserId(userId);
           }
-
+          
           return true;
         }
       }
-
+      
       return false;
     } catch (error) {
       throw new LogError(
@@ -244,7 +244,7 @@ export class NeuralLogClient {
       );
     }
   }
-
+  
   /**
    * Authenticate with an API key
    *
@@ -255,17 +255,17 @@ export class NeuralLogClient {
     try {
       // Ensure endpoints are initialized
       await this.initialize();
-
+      
       // Authenticate with API key
       const authenticated = await this.authManager.authenticateWithApiKey(apiKey);
-
+      
       if (authenticated) {
         // Initialize the key hierarchy
         await this.keyHierarchyManager.initializeWithApiKey(this.tenantId, apiKey);
-
+        
         return true;
       }
-
+      
       return false;
     } catch (error) {
       throw new LogError(
@@ -274,7 +274,7 @@ export class NeuralLogClient {
       );
     }
   }
-
+  
   /**
    * Initialize with a recovery phrase
    *
@@ -288,14 +288,14 @@ export class NeuralLogClient {
   ): Promise<boolean> {
     try {
       this.checkAuthentication();
-
+      
       // Initialize the key hierarchy
       await this.keyHierarchyManager.initializeWithRecoveryPhrase(
         this.tenantId,
         recoveryPhrase,
         versions
       );
-
+      
       return true;
     } catch (error) {
       throw new LogError(
@@ -304,7 +304,7 @@ export class NeuralLogClient {
       );
     }
   }
-
+  
   /**
    * Initialize with a mnemonic phrase
    *
@@ -318,14 +318,14 @@ export class NeuralLogClient {
   ): Promise<boolean> {
     try {
       this.checkAuthentication();
-
+      
       // Initialize the key hierarchy
       await this.keyHierarchyManager.initializeWithMnemonic(
         this.tenantId,
         mnemonicPhrase,
         versions
       );
-
+      
       return true;
     } catch (error) {
       throw new LogError(
@@ -334,7 +334,7 @@ export class NeuralLogClient {
       );
     }
   }
-
+  
   /**
    * Generate a mnemonic phrase
    *
@@ -344,7 +344,7 @@ export class NeuralLogClient {
   public generateMnemonic(strength: number = 128): string {
     return this.cryptoService.getMnemonicService().generateMnemonic(strength);
   }
-
+  
   /**
    * Generate quiz questions from a mnemonic phrase
    *
@@ -355,7 +355,7 @@ export class NeuralLogClient {
   public generateMnemonicQuiz(mnemonic: string, numQuestions: number = 3): Array<{ index: number; word: string }> {
     return this.cryptoService.getMnemonicService().generateQuizQuestions(mnemonic, numQuestions);
   }
-
+  
   /**
    * Verify mnemonic quiz answers
    *
@@ -369,7 +369,7 @@ export class NeuralLogClient {
   ): boolean {
     return this.cryptoService.getMnemonicService().verifyQuizAnswers(mnemonic, answers);
   }
-
+  
   /**
    * Recover KEK versions
    *
@@ -379,10 +379,10 @@ export class NeuralLogClient {
   public async recoverKEKVersions(versions: string[]): Promise<boolean> {
     try {
       this.checkAuthentication();
-
+      
       // Recover KEK versions
       await this.keyHierarchyManager.recoverKEKVersions(versions);
-
+      
       return true;
     } catch (error) {
       throw new LogError(
@@ -391,7 +391,7 @@ export class NeuralLogClient {
       );
     }
   }
-
+  
   /**
    * Log data to the specified log
    *
@@ -406,11 +406,11 @@ export class NeuralLogClient {
     options: { kekVersion?: string } = {}
   ): Promise<string> {
     this.checkAuthentication();
-
+    
     try {
       // Ensure endpoints are initialized
       await this.initialize();
-
+      
       // Log data
       return await this.logManager.log(
         logName,
@@ -425,7 +425,7 @@ export class NeuralLogClient {
       );
     }
   }
-
+  
   /**
    * Get logs for the specified log name
    *
@@ -438,11 +438,11 @@ export class NeuralLogClient {
     options: { limit?: number } = {}
   ): Promise<Record<string, any>[]> {
     this.checkAuthentication();
-
+    
     try {
       // Ensure endpoints are initialized
       await this.initialize();
-
+      
       // Get logs
       return await this.logManager.getLogs(
         logName,
@@ -456,7 +456,7 @@ export class NeuralLogClient {
       );
     }
   }
-
+  
   /**
    * Search logs for the specified log name
    *
@@ -469,11 +469,11 @@ export class NeuralLogClient {
     options: { query: string; limit?: number }
   ): Promise<Record<string, any>[]> {
     this.checkAuthentication();
-
+    
     try {
       // Ensure endpoints are initialized
       await this.initialize();
-
+      
       // Search logs
       return await this.logManager.searchLogs(
         logName,
@@ -487,7 +487,7 @@ export class NeuralLogClient {
       );
     }
   }
-
+  
   /**
    * Get all logs
    *
@@ -498,11 +498,11 @@ export class NeuralLogClient {
     options: { limit?: number } = {}
   ): Promise<Record<string, any>[]> {
     this.checkAuthentication();
-
+    
     try {
       // Ensure endpoints are initialized
       await this.initialize();
-
+      
       // Get all logs
       return await this.logManager.getAllLogs(
         options,
@@ -515,7 +515,7 @@ export class NeuralLogClient {
       );
     }
   }
-
+  
   /**
    * Get all users
    *
@@ -523,11 +523,11 @@ export class NeuralLogClient {
    */
   public async getUsers(): Promise<any[]> {
     this.checkAuthentication();
-
+    
     try {
       // Ensure endpoints are initialized
       await this.initialize();
-
+      
       // Get users
       return await this.userManager.getUsers(
         this.authManager.getAuthCredential()
@@ -539,7 +539,7 @@ export class NeuralLogClient {
       );
     }
   }
-
+  
   /**
    * Get pending admin promotions
    *
@@ -547,11 +547,11 @@ export class NeuralLogClient {
    */
   public async getPendingAdminPromotions(): Promise<any[]> {
     this.checkAuthentication();
-
+    
     try {
       // Ensure endpoints are initialized
       await this.initialize();
-
+      
       // Get pending admin promotions
       return await this.userManager.getPendingAdminPromotions(
         this.authManager.getAuthCredential()
@@ -563,7 +563,7 @@ export class NeuralLogClient {
       );
     }
   }
-
+  
   /**
    * Approve an admin promotion
    *
@@ -576,11 +576,11 @@ export class NeuralLogClient {
     userPassword: string
   ): Promise<void> {
     this.checkAuthentication();
-
+    
     try {
       // Ensure endpoints are initialized
       await this.initialize();
-
+      
       // Approve admin promotion
       await this.userManager.approveAdminPromotion(
         promotionId,
@@ -594,7 +594,7 @@ export class NeuralLogClient {
       );
     }
   }
-
+  
   /**
    * Reject an admin promotion
    *
@@ -603,11 +603,11 @@ export class NeuralLogClient {
    */
   public async rejectAdminPromotion(promotionId: string): Promise<void> {
     this.checkAuthentication();
-
+    
     try {
       // Ensure endpoints are initialized
       await this.initialize();
-
+      
       // Reject admin promotion
       await this.userManager.rejectAdminPromotion(
         promotionId,
@@ -620,7 +620,7 @@ export class NeuralLogClient {
       );
     }
   }
-
+  
   /**
    * Create an API key
    *
@@ -633,11 +633,11 @@ export class NeuralLogClient {
     permissions: string[]
   ): Promise<string> {
     this.checkAuthentication();
-
+    
     try {
       // Ensure endpoints are initialized
       await this.initialize();
-
+      
       // Create API key
       return await this.authManager.createApiKey(
         name,
@@ -651,7 +651,7 @@ export class NeuralLogClient {
       );
     }
   }
-
+  
   /**
    * Get API keys
    *
@@ -659,11 +659,11 @@ export class NeuralLogClient {
    */
   public async getApiKeys(): Promise<any[]> {
     this.checkAuthentication();
-
+    
     try {
       // Ensure endpoints are initialized
       await this.initialize();
-
+      
       // Get API keys
       return await this.authManager.getApiKeys(
         this.authManager.getAuthCredential()
@@ -675,7 +675,7 @@ export class NeuralLogClient {
       );
     }
   }
-
+  
   /**
    * Revoke an API key
    *
@@ -684,11 +684,11 @@ export class NeuralLogClient {
    */
   public async revokeApiKey(apiKeyId: string): Promise<void> {
     this.checkAuthentication();
-
+    
     try {
       // Ensure endpoints are initialized
       await this.initialize();
-
+      
       // Revoke API key
       await this.authManager.revokeApiKey(
         apiKeyId,
@@ -701,7 +701,7 @@ export class NeuralLogClient {
       );
     }
   }
-
+  
   /**
    * Get KEK versions
    *
@@ -709,11 +709,11 @@ export class NeuralLogClient {
    */
   public async getKEKVersions(): Promise<any[]> {
     this.checkAuthentication();
-
+    
     try {
       // Ensure endpoints are initialized
       await this.initialize();
-
+      
       // Get KEK versions
       return await this.keyHierarchyManager.getKEKVersions(
         this.authManager.getAuthCredential()
@@ -725,7 +725,7 @@ export class NeuralLogClient {
       );
     }
   }
-
+  
   /**
    * Create a new KEK version
    *
@@ -734,11 +734,11 @@ export class NeuralLogClient {
    */
   public async createKEKVersion(reason: string): Promise<any> {
     this.checkAuthentication();
-
+    
     try {
       // Ensure endpoints are initialized
       await this.initialize();
-
+      
       // Create KEK version
       return await this.keyHierarchyManager.createKEKVersion(
         reason,
@@ -751,7 +751,7 @@ export class NeuralLogClient {
       );
     }
   }
-
+  
   /**
    * Rotate KEK
    *
@@ -761,11 +761,11 @@ export class NeuralLogClient {
    */
   public async rotateKEK(reason: string, removedUsers: string[] = []): Promise<any> {
     this.checkAuthentication();
-
+    
     try {
       // Ensure endpoints are initialized
       await this.initialize();
-
+      
       // Rotate KEK
       return await this.keyHierarchyManager.rotateKEK(
         reason,
@@ -779,7 +779,7 @@ export class NeuralLogClient {
       );
     }
   }
-
+  
   /**
    * Get a user key pair
    *
@@ -788,7 +788,7 @@ export class NeuralLogClient {
    */
   public async getUserKeyPair(userPassword: string): Promise<CryptoKeyPair> {
     this.checkAuthentication();
-
+    
     try {
       // Get user key pair
       return await this.userManager.getUserKeyPair(userPassword);
@@ -799,7 +799,7 @@ export class NeuralLogClient {
       );
     }
   }
-
+  
   /**
    * Upload a user's public key
    *
@@ -808,11 +808,11 @@ export class NeuralLogClient {
    */
   public async uploadUserPublicKey(userPassword: string): Promise<void> {
     this.checkAuthentication();
-
+    
     try {
       // Ensure endpoints are initialized
       await this.initialize();
-
+      
       // Upload user public key
       await this.userManager.uploadUserPublicKey(
         userPassword,
@@ -825,35 +825,7 @@ export class NeuralLogClient {
       );
     }
   }
-
-  /**
-   * Provision a KEK for a user
-   *
-   * @param userId User ID
-   * @param kekVersionId KEK version ID
-   * @returns Promise that resolves when the KEK is provisioned
-   */
-  public async provisionKEKForUser(userId: string, kekVersionId: string): Promise<void> {
-    this.checkAuthentication();
-
-    try {
-      // Ensure endpoints are initialized
-      await this.initialize();
-
-      // Provision KEK for user
-      await this.keyHierarchyManager.provisionKEKForUser(
-        userId,
-        kekVersionId,
-        this.authManager.getAuthCredential()
-      );
-    } catch (error) {
-      throw new LogError(
-        `Failed to provision KEK for user: ${error instanceof Error ? error.message : String(error)}`,
-        'provision_kek_failed'
-      );
-    }
-  }
-
+  
   /**
    * Get the current user ID
    *
@@ -862,7 +834,7 @@ export class NeuralLogClient {
   public getCurrentUserId(): string {
     return this.userManager.getCurrentUserId();
   }
-
+  
   /**
    * Get the auth URL
    *
@@ -871,7 +843,7 @@ export class NeuralLogClient {
   public getAuthUrl(): string {
     return this.authService.getBaseUrl();
   }
-
+  
   /**
    * Get the server URL
    *
@@ -880,7 +852,7 @@ export class NeuralLogClient {
   public getServerUrl(): string {
     return this.logsService.getBaseUrl();
   }
-
+  
   /**
    * Get the web URL
    *
@@ -889,7 +861,7 @@ export class NeuralLogClient {
   public getWebUrl(): string {
     return this.webUrl || '';
   }
-
+  
   /**
    * Get the direct logs service
    *
@@ -898,16 +870,16 @@ export class NeuralLogClient {
   public getDirectLogsService(): LogsService {
     return this.logsService;
   }
-
+  
   /**
    * Check if the client is authenticated
-   *
+   * 
    * @returns True if the client is authenticated
    */
   public isAuthenticated(): boolean {
     return this.authManager.isAuthenticated();
   }
-
+  
   /**
    * Check if the client is authenticated
    *

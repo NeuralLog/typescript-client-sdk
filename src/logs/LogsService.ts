@@ -55,7 +55,10 @@ export class LogsService {
   ): Promise<string> {
     try {
       // Include search tokens in the request if provided
-      const dataToSend = searchTokens ? { ...encryptedData, searchTokens } : encryptedData;
+      const logEntry = searchTokens ? { ...encryptedData, searchTokens } : encryptedData;
+
+      // Wrap the log entry in an array to match Java implementation
+      const dataToSend = [logEntry];
 
       const response = await this.apiClient.post(
         `${this.baseUrl}/logs/${logName}`,
@@ -133,7 +136,13 @@ export class LogsService {
 
       // Add search tokens
       if (searchTokens.length > 0) {
-        params.tokens = searchTokens;
+        // Use 'token' parameter for each token to match Java implementation
+        searchTokens.forEach(token => {
+          if (!params.token) {
+            params.token = [];
+          }
+          params.token.push(token);
+        });
       }
 
       const response = await this.apiClient.get(
