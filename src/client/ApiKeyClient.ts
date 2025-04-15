@@ -2,7 +2,7 @@ import { BaseClient } from './BaseClient';
 import { AuthManager } from '../auth/AuthManager';
 import { AuthProvider } from './services/AuthProvider';
 import { ConfigurationService } from './services/ConfigurationService';
-import { ApiKey } from '../types/api';
+import { ApiKey } from '../types';
 
 /**
  * Client for API key operations

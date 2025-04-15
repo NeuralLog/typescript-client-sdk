@@ -3,7 +3,7 @@ import { AuthManager } from '../auth/AuthManager';
 import { TokenService } from '../auth/TokenService';
 import { AuthProvider } from './services/AuthProvider';
 import { ConfigurationService } from './services/ConfigurationService';
-import { Login } from '../types/api';
+import { Login } from '../types';
 import { LogError } from '../errors';
 import { LogErrorCode } from '../errors/LogErrorCode';
 

@@ -7,10 +7,7 @@ import {
   Log,
   LogEntry,
   LogSearchOptions,
-  LogStatistics,
-  PaginatedResult,
-  LogCreateOptions,
-  LogUpdateOptions
+  PaginatedResult
 } from '../types';
 import { LoggerService } from '../utils/LoggerService';
 
@@ -158,9 +155,11 @@ export class LogManager {
             this.logger.error(`Failed to decrypt log: ${decryptError}`);
 
             // If we get here, we couldn't decrypt the log
+            // Handle missing encryptionInfo property
+            const encryptionInfo = (encryptedLog as any).encryptionInfo;
             return {
               error: 'Failed to decrypt log',
-              encryptedWithVersion: encryptedLog.encryptionInfo?.kekVersion || 'unknown'
+              encryptedWithVersion: encryptionInfo?.kekVersion || 'unknown'
             };
           }
         })

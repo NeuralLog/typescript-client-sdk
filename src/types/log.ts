@@ -1,81 +1,269 @@
 /**
- * Interface for a log
+ * Log Server API Types
+ *
+ * THIS FILE IS AUTO-GENERATED - DO NOT EDIT DIRECTLY
+ * Generated from OpenAPI schema
  */
+
 export interface Log {
   /**
    * Log ID
    */
-  id: string;
-
+  id?: string;
   /**
-   * Log name (encrypted)
+   * Log name
    */
   name: string;
-
   /**
-   * Creation timestamp
+   * Log description
    */
-  createdAt: string;
-
-  /**
-   * Last update timestamp
-   */
-  updatedAt: string;
-
-  /**
-   * User ID who created this log
-   */
-  createdBy: string;
-
+  description?: string;
   /**
    * Tenant ID
    */
   tenantId: string;
-
   /**
-   * Log encryption information
+   * Creation timestamp
+   * @format date-time
    */
-  encryption?: {
-    /**
-     * KEK version used to encrypt this log
-     */
-    kekVersion: string;
-
-    /**
-     * Encryption algorithm
-     */
-    algorithm: string;
-  };
+  createdAt?: string;
+  /**
+   * Last update timestamp
+   * @format date-time
+   */
+  updatedAt?: string;
+  /**
+   * Number of days to retain log entries
+   */
+  retentionDays?: number;
+  /**
+   * Whether encryption is enabled for this log
+   */
+  encryptionEnabled?: boolean;
 }
 
-/**
- * Interface for a log entry
- */
+export interface LogUpdate {
+  /**
+   * Log description
+   */
+  description?: string;
+  /**
+   * Number of days to retain log entries
+   */
+  retentionDays?: number;
+  /**
+   * Whether encryption is enabled for this log
+   */
+  encryptionEnabled?: boolean;
+}
+
 export interface LogEntry {
   /**
-   * Entry ID
+   * Log entry ID
    */
-  id: string;
-
+  id?: string;
   /**
    * Log ID
    */
   logId: string;
-
   /**
    * Timestamp
+   * @format date-time
    */
-  timestamp: string;
-
+  timestamp?: string;
   /**
-   * Log data
+   * Log entry data
    */
-  data: any;
+  data: Record<string, any>;
+  /**
+   * Search tokens
+   */
+  searchTokens?: string[];
+  encryptionInfo?: {
+    /** Encryption version */
+    version?: string;
+    /** Encryption algorithm */
+    algorithm?: string;
+  };
 }
 
-/**
- * Interface for an encrypted log entry
- */
+export interface LogSearchOptions {
+  /**
+   * Search query
+   */
+  query?: string;
+  /**
+   * Search tokens
+   */
+  searchTokens?: string[];
+  /**
+   * Start time for search range
+   * @format date-time
+   */
+  startTime?: string;
+  /**
+   * End time for search range
+   * @format date-time
+   */
+  endTime?: string;
+  /**
+   * Maximum number of entries to return
+   */
+  limit?: number;
+  /**
+   * Offset for pagination
+   */
+  offset?: number;
+  /**
+   * Sort order
+   */
+  sortOrder?: "asc" | "desc";
+}
+
+// Original PaginatedLogEntries from OpenAPI schema
+// This is replaced by the more complete version below
+// export interface PaginatedLogEntries {
+//   entries?: LogEntry[];
+//   /**
+//    * Total number of entries
+//    */
+//   total?: number;
+//   /**
+//    * Maximum number of entries returned
+//    */
+//   limit?: number;
+//   /**
+//    * Offset for pagination
+//    */
+//   offset?: number;
+//   /**
+//    * Whether there are more entries
+//    */
+//   hasMore?: boolean;
+// }
+
+export interface Error {
+  status: string;
+  message: string;
+  code?: string;
+}
+
+export interface PaginatedResult<T> {
+  /** Result items */
+  items?: T[];
+
+  /** Result entries (alias for items for backward compatibility) */
+  entries: T[];
+
+  /** Total count */
+  total: number;
+
+  /** Total count (alias for total for backward compatibility) */
+  totalCount: number;
+
+  /** Result limit */
+  limit: number;
+
+  /** Result offset */
+  offset: number;
+
+  /** Whether there are more results */
+  hasMore?: boolean;
+}
+
+export interface BatchAppendResult {
+  /** Entries with their IDs and timestamps */
+  entries: { id: string; timestamp: string }[];
+}
+
+// API-specific types
+export type GetLogsData = Log[];
+export type CreateLogData = Log;
+export type GetLogData = Log;
+export type UpdateLogData = Log;
+export type DeleteLogData = any;
+export type GetLogEntriesData = PaginatedLogEntries;
+export type SearchLogEntriesData = PaginatedLogEntries;
+
+// Redefine PaginatedLogEntries to match PaginatedResult<LogEntry>
+export interface PaginatedLogEntries {
+  /** Result items */
+  items?: LogEntry[];
+
+  /** Result entries (alias for items for backward compatibility) */
+  entries: LogEntry[];
+
+  /** Total count */
+  total: number;
+
+  /** Total count (alias for total for backward compatibility) */
+  totalCount: number;
+
+  /** Result limit */
+  limit: number;
+
+  /** Result offset */
+  offset: number;
+
+  /** Whether there are more results */
+  hasMore?: boolean;
+}
+
+export interface GetLogEntriesParams {
+  /**
+   * Maximum number of entries to return
+   * @min 1
+   * @default 10
+   */
+  limit?: number;
+  /**
+   * Offset for pagination
+   * @min 0
+   * @default 0
+   */
+  offset?: number;
+  /** Log name */
+  logName: string;
+}
+
+export interface AppendLogEntryData {
+  /** @example "success" */
+  status?: string;
+  id?: string;
+  /** @format date-time */
+  timestamp?: string;
+}
+
+export interface BatchAppendLogEntriesPayload {
+  entries: LogEntry[];
+}
+
+export interface BatchAppendLogEntriesData {
+  count?: number;
+  entries?: {
+    id?: string;
+    /** @format date-time */
+    timestamp?: string;
+  }[];
+}
+
+export interface LogEncryptionInfo {
+  /**
+   * Whether the log is encrypted
+   */
+  encrypted: boolean;
+
+  /**
+   * Encryption algorithm
+   */
+  algorithm: string;
+
+  /**
+   * KEK version used to encrypt the log
+   */
+  kekVersion: string;
+}
+
 export interface EncryptedLogEntry {
   /**
    * Encrypted log data
@@ -111,144 +299,4 @@ export interface EncryptedLogEntry {
    * Search tokens
    */
   searchTokens?: string[];
-}
-
-/**
- * Interface for log search options
- */
-export interface LogSearchOptions {
-  /**
-   * Search query
-   */
-  query?: string;
-
-  /**
-   * Start timestamp
-   */
-  startTime?: string;
-
-  /**
-   * End timestamp
-   */
-  endTime?: string;
-
-  /**
-   * Maximum number of results
-   */
-  limit?: number;
-
-  /**
-   * Offset for pagination
-   */
-  offset?: number;
-
-  /**
-   * Sort order
-   */
-  sortOrder?: 'asc' | 'desc';
-}
-
-/**
- * Interface for log statistics
- */
-export interface LogStatistics {
-  /**
-   * Total number of entries
-   */
-  totalEntries: number;
-
-  /**
-   * First entry timestamp
-   */
-  firstEntryTimestamp?: string;
-
-  /**
-   * Last entry timestamp
-   */
-  lastEntryTimestamp?: string;
-
-  /**
-   * Average entries per day
-   */
-  averageEntriesPerDay?: number;
-
-  /**
-   * Total storage size in bytes
-   */
-  totalStorageSize?: number;
-}
-
-/**
- * Interface for paginated results
- */
-export interface PaginatedResult<T> {
-  /**
-   * Result entries
-   */
-  entries: T[];
-
-  /**
-   * Total count
-   */
-  totalCount: number;
-
-  /**
-   * Offset
-   */
-  offset: number;
-
-  /**
-   * Limit
-   */
-  limit: number;
-
-  /**
-   * Whether there are more results
-   */
-  hasMore: boolean;
-}
-
-/**
- * Interface for log creation options
- */
-export interface LogCreateOptions {
-  /**
-   * Log name
-   */
-  name: string;
-
-  /**
-   * Log description
-   */
-  description?: string;
-
-  /**
-   * Log tags
-   */
-  tags?: string[];
-
-  /**
-   * Log retention period in days
-   */
-  retentionDays?: number;
-}
-
-/**
- * Interface for log update options
- */
-export interface LogUpdateOptions {
-  /**
-   * Log description
-   */
-  description?: string;
-
-  /**
-   * Log tags
-   */
-  tags?: string[];
-
-  /**
-   * Log retention period in days
-   */
-  retentionDays?: number;
 }

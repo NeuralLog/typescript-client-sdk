@@ -833,6 +833,27 @@ Reconstructs a KEK from shares.
 
 ## Types
 
+### API Types
+
+The TypeScript Client SDK uses a set of shared types that are automatically generated from the OpenAPI schemas of the log-server and auth service. These types ensure consistency between the server and client implementations.
+
+The generated types are located in `src/types/api.ts` and include:
+
+- **Log**: Represents a log in the system
+- **LogEntry**: Represents a single log entry
+- **LogSearchOptions**: Options for searching logs
+- **PaginatedResult**: Generic paginated result type
+- **BatchAppendResult**: Result of a batch append operation
+- **User**: User information
+- **ApiKey**: API key information
+- **KEKVersion**: Key Encryption Key version information
+- **KEKBlob**: Encrypted KEK blob
+- **EncryptedKEK**: Encrypted KEK data
+- **EncryptedLogEntry**: Encrypted log entry data
+- **SerializedSecretShare**: Serialized Shamir's Secret Share
+
+These types are automatically generated during the build process of the log-server and auth service, ensuring that they always match the server-side API definitions.
+
 ### NeuralLogClientConfig
 
 ```typescript

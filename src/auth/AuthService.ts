@@ -12,9 +12,10 @@ import {
   AdminShare,
   UserProfile,
   ApiKeyChallenge,
-  ApiKeyChallengeVerification
-} from '../types/api';
-import { CreateApiKeyRequest, ApiKeyInfo } from '../types';
+  ApiKeyChallengeVerification,
+  CreateApiKeyRequest,
+  ApiKeyInfo
+} from '../types';
 
 /**
  * Service for interacting with the NeuralLog auth service

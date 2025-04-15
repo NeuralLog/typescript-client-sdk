@@ -1,47 +1,69 @@
-// Export log types
-export * from './log';
+/**
+ * API Types
+ *
+ * This file exports types from both the log-server and auth service
+ */
 
 // Export client types
 export * from './client';
 
-// Export KEK types
+// Export KEK types (these take precedence over generated types)
 export * from './kek';
 
-// Export API types
-export * from './api';
+// Export log-server types, excluding those that conflict with kek.ts
+import * as LogTypes from './log';
 
-// Re-export specific types to avoid duplicates
 export type {
-  EncryptedLogEntry,
+  Log,
+  LogUpdate,
+  LogEntry,
+  LogSearchOptions,
+  Error,
+  PaginatedResult,
+  BatchAppendResult,
+  GetLogsData,
+  CreateLogData,
+  GetLogData,
+  UpdateLogData,
+  DeleteLogData,
+  GetLogEntriesData,
+  SearchLogEntriesData,
+  PaginatedLogEntries,
+  GetLogEntriesParams,
+  AppendLogEntryData,
+  BatchAppendLogEntriesPayload,
+  BatchAppendLogEntriesData,
+  EncryptedLogEntry
 } from './log';
 
-// Types moved to api.ts
+// Export auth service types with type conflicts resolved
+import * as AuthTypes from './auth';
 
+// Re-export auth types, excluding those that conflict with kek.ts
 export type {
-  Login,
-  UserProfile,
+  AdminShare,
+  AdminShares,
+  AdminShareRequest,
+  AdminPromotionRequest,
+  PublicKey,
+  SerializedSecretShare,
   ApiKey,
+  ApiKeyChallenge,
+  ApiKeyChallengeVerification,
   ApiKeyInfo,
   ApiKeyPermission,
   CreateApiKeyRequest,
+  KeysList,
+  Login,
+  PermissionCheck,
+  TokenValidationResult,
+  TokenExchangeResult,
+  ResourceTokenVerificationResult,
   KEKBlob,
-  KEKVersion,
-  EncryptedKEK,
-  LogEncryptionInfo,
-  Log,
-  LogEntry,
-  LogSearchOptions,
-  LogStatistics,
-  PaginatedResult,
-  LogCreateOptions,
-  LogUpdateOptions,
-  SerializedSecretShare,
+  KEKBlobs,
+  KEKVersions,
+  Tenant,
+  Role,
   User,
-  AdminShare,
-  AdminShareRequest,
-  AdminPromotionRequest,
-  ApiKeyChallenge,
-  ApiKeyChallengeVerification
-} from './api';
-
-// Types moved to api.ts
+  UserProfile
+} from './auth';

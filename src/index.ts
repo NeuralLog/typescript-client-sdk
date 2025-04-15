@@ -21,20 +21,7 @@ export { KeyHierarchy } from './crypto/KeyHierarchy';
 // Types
 export * from './types';
 
-// Explicitly export API types
-export type {
-  ApiKeyChallenge,
-  ApiKeyChallengeVerification,
-  UserProfile,
-  Login,
-  PermissionCheck,
-  TokenValidationResult,
-  TokenExchangeResult,
-  ResourceTokenVerificationResult,
-  Tenant,
-  Role,
-  ApiKey
-} from './types/api';
+// All types are already exported from './types'
 
 // Errors
 export * from './errors';

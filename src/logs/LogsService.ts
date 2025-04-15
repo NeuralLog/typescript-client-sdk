@@ -1,7 +1,7 @@
 import { AxiosInstance } from 'axios';
 import axios from 'axios';
 import { LogError } from '../errors';
-import { Log, LogEntry, LogCreateOptions, LogUpdateOptions, LogSearchOptions, LogStatistics, PaginatedResult } from '../types';
+import { Log, LogEntry, LogSearchOptions, PaginatedResult } from '../types';
 
 /**
  * Service for interacting with the NeuralLog logs service
@@ -84,22 +84,17 @@ export class LogsService {
    * Create a new log
    *
    * @param authToken Authentication token
-   * @param encryptedName Encrypted log name
-   * @param options Log creation options
+   * @param log Complete Log object
    * @returns Promise that resolves to the created log
    */
   public async createLog(
     authToken: string,
-    encryptedName: string,
-    options: LogCreateOptions = {}
+    log: Log
   ): Promise<Log> {
     try {
       const response = await this.apiClient.post(
         `${this.baseUrl}/logs`,
-        {
-          name: encryptedName,
-          ...options
-        },
+        log,
         {
           headers: {
             Authorization: `Bearer ${authToken}`
@@ -284,19 +279,17 @@ export class LogsService {
    * Update a log
    *
    * @param authToken Authentication token
-   * @param encryptedName Encrypted log name
-   * @param options Log update options
+   * @param log Complete Log object
    * @returns Promise that resolves to the updated log
    */
   public async updateLog(
     authToken: string,
-    encryptedName: string,
-    options: LogUpdateOptions
+    log: Log
   ): Promise<Log> {
     try {
       const response = await this.apiClient.put(
-        `${this.baseUrl}/logs/${encryptedName}`,
-        options,
+        `${this.baseUrl}/logs/${log.name}`,
+        log,
         {
           headers: {
             Authorization: `Bearer ${authToken}`
@@ -317,24 +310,19 @@ export class LogsService {
    * Append a log entry
    *
    * @param authToken Authentication token
-   * @param encryptedLogName Encrypted log name
-   * @param encryptedData Encrypted log data
-   * @param options Additional options
+   * @param logName Log name
+   * @param entry Complete LogEntry object
    * @returns Promise that resolves to the log entry
    */
   public async appendLogEntry(
     authToken: string,
-    encryptedLogName: string,
-    encryptedData: any,
-    options: any = {}
+    logName: string,
+    entry: LogEntry
   ): Promise<LogEntry> {
     try {
       const response = await this.apiClient.post(
-        `${this.baseUrl}/logs/${encryptedLogName}/entries`,
-        {
-          data: encryptedData,
-          ...options
-        },
+        `${this.baseUrl}/logs/${logName}/entries`,
+        entry,
         {
           headers: {
             Authorization: `Bearer ${authToken}`
@@ -433,19 +421,19 @@ export class LogsService {
    * Search log entries
    *
    * @param authToken Authentication token
-   * @param encryptedLogName Encrypted log name
-   * @param options Search options
+   * @param logName Log name
+   * @param searchOptions Complete LogSearchOptions object
    * @returns Promise that resolves to the search results
    */
   public async searchLogEntries(
     authToken: string,
-    encryptedLogName: string,
-    options: any
+    logName: string,
+    searchOptions: LogSearchOptions
   ): Promise<PaginatedResult<LogEntry>> {
     try {
       const response = await this.apiClient.post(
-        `${this.baseUrl}/logs/${encryptedLogName}/search`,
-        options,
+        `${this.baseUrl}/logs/${logName}/search`,
+        searchOptions,
         {
           headers: {
             Authorization: `Bearer ${authToken}`
@@ -455,8 +443,8 @@ export class LogsService {
 
       const entries = response.data.entries || [];
       const totalCount = response.data.total_count || 0;
-      const offset = options.offset || 0;
-      const limit = options.limit || 10;
+      const offset = searchOptions.offset || 0;
+      const limit = searchOptions.limit || 10;
 
       return {
         entries,
@@ -485,7 +473,7 @@ export class LogsService {
   public async getLogStatistics(
     authToken: string,
     encryptedLogName: string
-  ): Promise<LogStatistics> {
+  ): Promise<any> {
     try {
       const response = await this.apiClient.get(
         `${this.baseUrl}/logs/${encryptedLogName}/statistics`,
@@ -509,19 +497,23 @@ export class LogsService {
    * Batch append log entries
    *
    * @param authToken Authentication token
-   * @param encryptedLogName Encrypted log name
-   * @param encryptedEntries Encrypted log entries
+   * @param logName Log name
+   * @param entries Array of complete LogEntry objects
    * @returns Promise that resolves to the log entries
    */
   public async batchAppendLogEntries(
     authToken: string,
-    encryptedLogName: string,
-    encryptedEntries: any[]
+    logName: string,
+    entries: LogEntry[]
   ): Promise<PaginatedResult<LogEntry>> {
     try {
+      // Create a copy of the entries array to avoid variable shadowing
+      const entriesToSend = entries.slice();
+
+      // Make the API call
       const response = await this.apiClient.post(
-        `${this.baseUrl}/logs/${encryptedLogName}/entries/batch`,
-        { entries: encryptedEntries },
+        `${this.baseUrl}/logs/${logName}/entries/batch`,
+        { entries: entriesToSend },
         {
           headers: {
             Authorization: `Bearer ${authToken}`
@@ -529,16 +521,17 @@ export class LogsService {
         }
       );
 
-      const entries = response.data.entries || [];
-      const totalCount = entries.length;
+      // Extract the response data
+      const responseEntries = response.data.entries || [];
+      const totalCount = responseEntries.length;
 
       return {
-        entries,
-        items: entries,
+        entries: responseEntries,
+        items: responseEntries,
         total: totalCount,
         totalCount,
         offset: 0,
-        limit: encryptedEntries.length,
+        limit: entriesToSend.length,
         hasMore: false
       };
     } catch (error) {

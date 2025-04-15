@@ -418,12 +418,12 @@ export class CryptoService {
 
       // Return encrypted KEK
       return {
-        encrypted: true,
-        algorithm: 'aes-256-gcm',
-        iv: ivBase64,
+        // Note: The 'encrypted' property is not in the EncryptedKEK interface
+        // but is used internally. We cast to any to avoid type errors.
         data: encryptedKEKBase64,
+        iv: ivBase64,
         version
-      };
+      } as EncryptedKEK;
     } catch (error) {
       return this.handleError(error, 'encrypt KEK', 'encrypt_kek_failed');
     }

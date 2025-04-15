@@ -11,7 +11,7 @@ import {
   KEKBlob,
   AdminShareRequest,
   AdminShare
-} from '../types/api';
+} from '../types';
 
 /**
  * Manager for authentication and authorization operations

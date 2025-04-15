@@ -18,8 +18,7 @@ import { KeyHierarchyManager } from '../managers/KeyHierarchyManager';
 import { LogManager } from '../managers/LogManager';
 import { UserManager } from '../managers/UserManager';
 import { LogError } from '../errors';
-import { User, AdminPromotionRequest, KEKVersion } from '../types';
-import { Login, ApiKey } from '../types/api';
+import { User, AdminPromotionRequest, KEKVersion, Login, ApiKey } from '../types';
 import { LoggerService } from '../utils/LoggerService';
 
 /**
