@@ -88,6 +88,41 @@ export interface UserProfile {
 }
 
 /**
+ * User
+ */
+export interface User {
+  /**
+   * User ID
+   */
+  id: string;
+
+  /**
+   * User email
+   */
+  email: string;
+
+  /**
+   * User name
+   */
+  name?: string;
+
+  /**
+   * Tenant ID
+   */
+  tenantId: string;
+
+  /**
+   * Whether the user is an admin
+   */
+  isAdmin?: boolean;
+
+  /**
+   * Creation date
+   */
+  createdAt: string;
+}
+
+/**
  * Login
  */
 export interface Login {

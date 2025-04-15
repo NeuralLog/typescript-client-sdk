@@ -66,7 +66,7 @@ describe('KeyManagementClient', () => {
   describe('getKEKVersions', () => {
     it('should initialize if not initialized', async () => {
       const spy = jest.spyOn(keyManagementClient, 'initialize');
-      mockKeyHierarchyManager.getKEKVersions.mockResolvedValue([{ id: 'kek-1', version: 1, active: true, created_at: '2023-01-01T00:00:00Z' }]);
+      mockKeyHierarchyManager.getKEKVersions.mockResolvedValue([{ id: 'kek-1', createdAt: '2023-01-01T00:00:00Z', createdBy: 'user-1', status: 'active', reason: 'Initial KEK', tenantId: 'tenant-1' }]);
       mockAuthProvider.getAuthToken.mockReturnValue('test-token');
 
       await keyManagementClient.getKEKVersions();
@@ -76,7 +76,7 @@ describe('KeyManagementClient', () => {
 
     it('should check authentication', async () => {
       await keyManagementClient.initialize();
-      mockKeyHierarchyManager.getKEKVersions.mockResolvedValue([{ id: 'kek-1', version: 1, active: true, created_at: '2023-01-01T00:00:00Z' }]);
+      mockKeyHierarchyManager.getKEKVersions.mockResolvedValue([{ id: 'kek-1', createdAt: '2023-01-01T00:00:00Z', createdBy: 'user-1', status: 'active', reason: 'Initial KEK', tenantId: 'tenant-1' }]);
       mockAuthProvider.getAuthToken.mockReturnValue('test-token');
 
       await keyManagementClient.getKEKVersions();
@@ -86,13 +86,13 @@ describe('KeyManagementClient', () => {
 
     it('should delegate to the key hierarchy manager', async () => {
       await keyManagementClient.initialize();
-      mockKeyHierarchyManager.getKEKVersions.mockResolvedValue([{ id: 'kek-1', version: 1, active: true, created_at: '2023-01-01T00:00:00Z' }]);
+      mockKeyHierarchyManager.getKEKVersions.mockResolvedValue([{ id: 'kek-1', createdAt: '2023-01-01T00:00:00Z', createdBy: 'user-1', status: 'active', reason: 'Initial KEK', tenantId: 'tenant-1' }]);
       mockAuthProvider.getAuthToken.mockReturnValue('test-token');
 
       const result = await keyManagementClient.getKEKVersions();
 
       expect(mockKeyHierarchyManager.getKEKVersions).toHaveBeenCalledWith('test-token');
-      expect(result).toEqual([{ id: 'kek-1', version: 1, active: true, created_at: '2023-01-01T00:00:00Z' }]);
+      expect(result).toEqual([{ id: 'kek-1', createdAt: '2023-01-01T00:00:00Z', createdBy: 'user-1', status: 'active', reason: 'Initial KEK', tenantId: 'tenant-1' }]);
     });
 
     it('should throw an error if key hierarchy manager throws', async () => {
@@ -114,7 +114,7 @@ describe('KeyManagementClient', () => {
   describe('createKEKVersion', () => {
     it('should initialize if not initialized', async () => {
       const spy = jest.spyOn(keyManagementClient, 'initialize');
-      mockKeyHierarchyManager.createKEKVersion.mockResolvedValue({ id: 'kek-1', version: 1, active: true, created_at: '2023-01-01T00:00:00Z' });
+      mockKeyHierarchyManager.createKEKVersion.mockResolvedValue({ id: 'kek-1', createdAt: '2023-01-01T00:00:00Z', createdBy: 'user-1', status: 'active', reason: 'Initial KEK', tenantId: 'tenant-1' });
       mockAuthProvider.getAuthToken.mockReturnValue('test-token');
 
       await keyManagementClient.createKEKVersion('test reason');
@@ -124,7 +124,7 @@ describe('KeyManagementClient', () => {
 
     it('should check authentication', async () => {
       await keyManagementClient.initialize();
-      mockKeyHierarchyManager.createKEKVersion.mockResolvedValue({ id: 'kek-1', version: 1, active: true, created_at: '2023-01-01T00:00:00Z' });
+      mockKeyHierarchyManager.createKEKVersion.mockResolvedValue({ id: 'kek-1', createdAt: '2023-01-01T00:00:00Z', createdBy: 'user-1', status: 'active', reason: 'Initial KEK', tenantId: 'tenant-1' });
       mockAuthProvider.getAuthToken.mockReturnValue('test-token');
 
       await keyManagementClient.createKEKVersion('test reason');
@@ -134,13 +134,13 @@ describe('KeyManagementClient', () => {
 
     it('should delegate to the key hierarchy manager', async () => {
       await keyManagementClient.initialize();
-      mockKeyHierarchyManager.createKEKVersion.mockResolvedValue({ id: 'kek-1', version: 1, active: true, created_at: '2023-01-01T00:00:00Z' });
+      mockKeyHierarchyManager.createKEKVersion.mockResolvedValue({ id: 'kek-1', createdAt: '2023-01-01T00:00:00Z', createdBy: 'user-1', status: 'active', reason: 'Initial KEK', tenantId: 'tenant-1' });
       mockAuthProvider.getAuthToken.mockReturnValue('test-token');
 
       const result = await keyManagementClient.createKEKVersion('test reason');
 
       expect(mockKeyHierarchyManager.createKEKVersion).toHaveBeenCalledWith('test reason', 'test-token');
-      expect(result).toEqual({ id: 'kek-1', version: 1, active: true, created_at: '2023-01-01T00:00:00Z' });
+      expect(result).toEqual({ id: 'kek-1', createdAt: '2023-01-01T00:00:00Z', createdBy: 'user-1', status: 'active', reason: 'Initial KEK', tenantId: 'tenant-1' });
     });
 
     it('should throw an error if key hierarchy manager throws', async () => {
@@ -162,7 +162,7 @@ describe('KeyManagementClient', () => {
   describe('rotateKEK', () => {
     it('should initialize if not initialized', async () => {
       const spy = jest.spyOn(keyManagementClient, 'initialize');
-      mockKeyHierarchyManager.rotateKEK.mockResolvedValue({ id: 'kek-1', version: 1, active: true, created_at: '2023-01-01T00:00:00Z' });
+      mockKeyHierarchyManager.rotateKEK.mockResolvedValue({ id: 'kek-1', createdAt: '2023-01-01T00:00:00Z', createdBy: 'user-1', status: 'active', reason: 'Initial KEK', tenantId: 'tenant-1' });
       mockAuthProvider.getAuthToken.mockReturnValue('test-token');
 
       await keyManagementClient.rotateKEK('test reason');
@@ -172,7 +172,7 @@ describe('KeyManagementClient', () => {
 
     it('should check authentication', async () => {
       await keyManagementClient.initialize();
-      mockKeyHierarchyManager.rotateKEK.mockResolvedValue({ id: 'kek-1', version: 1, active: true, created_at: '2023-01-01T00:00:00Z' });
+      mockKeyHierarchyManager.rotateKEK.mockResolvedValue({ id: 'kek-1', createdAt: '2023-01-01T00:00:00Z', createdBy: 'user-1', status: 'active', reason: 'Initial KEK', tenantId: 'tenant-1' });
       mockAuthProvider.getAuthToken.mockReturnValue('test-token');
 
       await keyManagementClient.rotateKEK('test reason');
@@ -182,13 +182,13 @@ describe('KeyManagementClient', () => {
 
     it('should delegate to the key hierarchy manager', async () => {
       await keyManagementClient.initialize();
-      mockKeyHierarchyManager.rotateKEK.mockResolvedValue({ id: 'kek-1', version: 1, active: true, created_at: '2023-01-01T00:00:00Z' });
+      mockKeyHierarchyManager.rotateKEK.mockResolvedValue({ id: 'kek-1', createdAt: '2023-01-01T00:00:00Z', createdBy: 'user-1', status: 'active', reason: 'Initial KEK', tenantId: 'tenant-1' });
       mockAuthProvider.getAuthToken.mockReturnValue('test-token');
 
       const result = await keyManagementClient.rotateKEK('test reason', ['user-1']);
 
       expect(mockKeyHierarchyManager.rotateKEK).toHaveBeenCalledWith('test reason', ['user-1'], 'test-token');
-      expect(result).toEqual({ id: 'kek-1', version: 1, active: true, created_at: '2023-01-01T00:00:00Z' });
+      expect(result).toEqual({ id: 'kek-1', createdAt: '2023-01-01T00:00:00Z', createdBy: 'user-1', status: 'active', reason: 'Initial KEK', tenantId: 'tenant-1' });
     });
 
     it('should throw an error if key hierarchy manager throws', async () => {

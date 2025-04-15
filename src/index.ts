@@ -39,4 +39,4 @@ export type {
 export * from './errors';
 
 // Version
-export const VERSION = '0.1.8';
+export const VERSION = '0.1.9';
