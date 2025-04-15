@@ -172,7 +172,7 @@ describe('UserClient', () => {
       const spy = jest.spyOn(userClient, 'initialize').mockResolvedValue();
 
       // Mock the user manager to return a value
-      mockUserManager.getUsers.mockResolvedValue([{ id: 'user-1', email: 'user1@example.com', name: 'User One', tenantId: 'tenant-1', createdAt: '2023-01-01T00:00:00Z', updatedAt: '2023-01-01T00:00:00Z' }]);
+      mockUserManager.getUsers.mockResolvedValue([{ id: 'user-1', email: 'user1@example.com', name: 'User One', tenantId: 'tenant-1', createdAt: '2023-01-01T00:00:00Z' }]);
 
       // Call the method
       await userClient.getUsers();
@@ -183,7 +183,7 @@ describe('UserClient', () => {
 
     it('should check authentication', async () => {
       await userClient.initialize();
-      mockUserManager.getUsers.mockResolvedValue([{ id: 'user-1', email: 'user1@example.com', name: 'User One', tenantId: 'tenant-1', createdAt: '2023-01-01T00:00:00Z', updatedAt: '2023-01-01T00:00:00Z' }]);
+      mockUserManager.getUsers.mockResolvedValue([{ id: 'user-1', email: 'user1@example.com', name: 'User One', tenantId: 'tenant-1', createdAt: '2023-01-01T00:00:00Z' }]);
 
       // Mock the isAuthenticated method to return true
       mockAuthProvider.isAuthenticated.mockReturnValue(true);
@@ -195,7 +195,7 @@ describe('UserClient', () => {
 
     it('should delegate to the user manager', async () => {
       await userClient.initialize();
-      mockUserManager.getUsers.mockResolvedValue([{ id: 'user-1', email: 'user1@example.com', name: 'User One', tenantId: 'tenant-1', createdAt: '2023-01-01T00:00:00Z', updatedAt: '2023-01-01T00:00:00Z' }]);
+      mockUserManager.getUsers.mockResolvedValue([{ id: 'user-1', email: 'user1@example.com', name: 'User One', tenantId: 'tenant-1', createdAt: '2023-01-01T00:00:00Z' }]);
 
       // Mock the isAuthenticated method to return true
       mockAuthProvider.isAuthenticated.mockReturnValue(true);
@@ -203,7 +203,7 @@ describe('UserClient', () => {
       const result = await userClient.getUsers();
 
       expect(mockUserManager.getUsers).toHaveBeenCalled();
-      expect(result).toEqual([{ id: 'user-1', email: 'user1@example.com', name: 'User One', tenantId: 'tenant-1', createdAt: '2023-01-01T00:00:00Z', updatedAt: '2023-01-01T00:00:00Z' }]);
+      expect(result).toEqual([{ id: 'user-1', email: 'user1@example.com', name: 'User One', tenantId: 'tenant-1', createdAt: '2023-01-01T00:00:00Z' }]);
     });
 
     it('should throw an error if user manager throws', async () => {

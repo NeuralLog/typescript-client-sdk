@@ -62,7 +62,7 @@ describe('ApiKeyClient', () => {
   describe('createApiKey', () => {
     it('should initialize if not initialized', async () => {
       const spy = jest.spyOn(apiKeyClient, 'initialize');
-      mockAuthManager.createApiKey.mockResolvedValue({ id: 'api-key-1', name: 'test key', scopes: ['logs:read'], createdAt: new Date('2023-01-01T00:00:00Z'), userId: 'user-1', tenantId: 'tenant-1', verificationHash: 'hash', expiresAt: new Date('2024-01-01T00:00:00Z'), revoked: false });
+      mockAuthManager.createApiKey.mockResolvedValue({ id: 'api-key-1', name: 'test key', scopes: ['logs:read'], createdAt: '2023-01-01T00:00:00Z', userId: 'user-1', tenantId: 'tenant-1', verificationHash: 'hash', expiresAt: '2024-01-01T00:00:00Z', revoked: false });
 
       await apiKeyClient.createApiKey('test key');
 
@@ -71,7 +71,7 @@ describe('ApiKeyClient', () => {
 
     it('should check authentication', async () => {
       await apiKeyClient.initialize();
-      mockAuthManager.createApiKey.mockResolvedValue({ id: 'api-key-1', name: 'test key', scopes: ['logs:read'], createdAt: new Date('2023-01-01T00:00:00Z'), userId: 'user-1', tenantId: 'tenant-1', verificationHash: 'hash', expiresAt: new Date('2024-01-01T00:00:00Z'), revoked: false });
+      mockAuthManager.createApiKey.mockResolvedValue({ id: 'api-key-1', name: 'test key', scopes: ['logs:read'], createdAt: '2023-01-01T00:00:00Z', userId: 'user-1', tenantId: 'tenant-1', verificationHash: 'hash', expiresAt: '2024-01-01T00:00:00Z', revoked: false });
 
       await apiKeyClient.createApiKey('test key');
 
@@ -80,12 +80,12 @@ describe('ApiKeyClient', () => {
 
     it('should delegate to the auth manager', async () => {
       await apiKeyClient.initialize();
-      mockAuthManager.createApiKey.mockResolvedValue({ id: 'api-key-1', name: 'test key', scopes: ['logs:read'], createdAt: new Date('2023-01-01T00:00:00Z'), userId: 'user-1', tenantId: 'tenant-1', verificationHash: 'hash', expiresAt: new Date('2024-01-01T00:00:00Z'), revoked: false });
+      mockAuthManager.createApiKey.mockResolvedValue({ id: 'api-key-1', name: 'test key', scopes: ['logs:read'], createdAt: '2023-01-01T00:00:00Z', userId: 'user-1', tenantId: 'tenant-1', verificationHash: 'hash', expiresAt: '2024-01-01T00:00:00Z', revoked: false });
 
       const result = await apiKeyClient.createApiKey('test key', 3600);
 
       expect(mockAuthManager.createApiKey).toHaveBeenCalledWith('test key', 3600);
-      expect(result).toEqual({ id: 'api-key-1', name: 'test key', scopes: ['logs:read'], createdAt: new Date('2023-01-01T00:00:00Z'), userId: 'user-1', tenantId: 'tenant-1', verificationHash: 'hash', expiresAt: new Date('2024-01-01T00:00:00Z'), revoked: false });
+      expect(result).toEqual({ id: 'api-key-1', name: 'test key', scopes: ['logs:read'], createdAt: '2023-01-01T00:00:00Z', userId: 'user-1', tenantId: 'tenant-1', verificationHash: 'hash', expiresAt: '2024-01-01T00:00:00Z', revoked: false });
     });
 
     it('should throw an error if auth manager throws', async () => {
@@ -99,7 +99,7 @@ describe('ApiKeyClient', () => {
   describe('getApiKeys', () => {
     it('should initialize if not initialized', async () => {
       const spy = jest.spyOn(apiKeyClient, 'initialize');
-      mockAuthManager.getApiKeys.mockResolvedValue([{ id: 'api-key-1', name: 'test key', scopes: ['logs:read'], createdAt: new Date('2023-01-01T00:00:00Z'), userId: 'user-1', tenantId: 'tenant-1', verificationHash: 'hash', expiresAt: new Date('2024-01-01T00:00:00Z'), revoked: false }]);
+      mockAuthManager.getApiKeys.mockResolvedValue([{ id: 'api-key-1', name: 'test key', scopes: ['logs:read'], createdAt: '2023-01-01T00:00:00Z', userId: 'user-1', tenantId: 'tenant-1', verificationHash: 'hash', expiresAt: '2024-01-01T00:00:00Z', revoked: false }]);
 
       await apiKeyClient.getApiKeys();
 
@@ -108,7 +108,7 @@ describe('ApiKeyClient', () => {
 
     it('should check authentication', async () => {
       await apiKeyClient.initialize();
-      mockAuthManager.getApiKeys.mockResolvedValue([{ id: 'api-key-1', name: 'test key', scopes: ['logs:read'], createdAt: new Date('2023-01-01T00:00:00Z'), userId: 'user-1', tenantId: 'tenant-1', verificationHash: 'hash', expiresAt: new Date('2024-01-01T00:00:00Z'), revoked: false }]);
+      mockAuthManager.getApiKeys.mockResolvedValue([{ id: 'api-key-1', name: 'test key', scopes: ['logs:read'], createdAt: '2023-01-01T00:00:00Z', userId: 'user-1', tenantId: 'tenant-1', verificationHash: 'hash', expiresAt: '2024-01-01T00:00:00Z', revoked: false }]);
 
       await apiKeyClient.getApiKeys();
 
@@ -117,12 +117,12 @@ describe('ApiKeyClient', () => {
 
     it('should delegate to the auth manager', async () => {
       await apiKeyClient.initialize();
-      mockAuthManager.getApiKeys.mockResolvedValue([{ id: 'api-key-1', name: 'test key', scopes: ['logs:read'], createdAt: new Date('2023-01-01T00:00:00Z'), userId: 'user-1', tenantId: 'tenant-1', verificationHash: 'hash', expiresAt: new Date('2024-01-01T00:00:00Z'), revoked: false }]);
+      mockAuthManager.getApiKeys.mockResolvedValue([{ id: 'api-key-1', name: 'test key', scopes: ['logs:read'], createdAt: '2023-01-01T00:00:00Z', userId: 'user-1', tenantId: 'tenant-1', verificationHash: 'hash', expiresAt: '2024-01-01T00:00:00Z', revoked: false }]);
 
       const result = await apiKeyClient.getApiKeys();
 
       expect(mockAuthManager.getApiKeys).toHaveBeenCalled();
-      expect(result).toEqual([{ id: 'api-key-1', name: 'test key', scopes: ['logs:read'], createdAt: new Date('2023-01-01T00:00:00Z'), userId: 'user-1', tenantId: 'tenant-1', verificationHash: 'hash', expiresAt: new Date('2024-01-01T00:00:00Z'), revoked: false }]);
+      expect(result).toEqual([{ id: 'api-key-1', name: 'test key', scopes: ['logs:read'], createdAt: '2023-01-01T00:00:00Z', userId: 'user-1', tenantId: 'tenant-1', verificationHash: 'hash', expiresAt: '2024-01-01T00:00:00Z', revoked: false }]);
     });
 
     it('should throw an error if auth manager throws', async () => {

@@ -804,7 +804,7 @@ describe('NeuralLogClient', () => {
   describe('getUsers', () => {
     it('should initialize the client if not initialized', async () => {
       // Create a new client with mocked clients
-      const mockGetUsers = jest.fn().mockResolvedValue([{ id: 'user-1', email: 'user@example.com', name: 'User 1', isAdmin: false, createdAt: new Date() }]);
+      const mockGetUsers = jest.fn().mockResolvedValue([{ id: 'user-1', email: 'user@example.com', name: 'User 1', isAdmin: false, createdAt: new Date().toISOString() }]);
       const mockInitialize = jest.fn().mockResolvedValue(undefined);
 
       // Setup all mocks
@@ -833,7 +833,7 @@ describe('NeuralLogClient', () => {
 
     it('should delegate to the user client', async () => {
       // Create a new client with mocked clients
-      const mockUsers = [{ id: 'user-1', email: 'user@example.com', name: 'User 1', isAdmin: false, createdAt: new Date() }];
+      const mockUsers = [{ id: 'user-1', email: 'user@example.com', name: 'User 1', isAdmin: false, createdAt: new Date().toISOString() }];
       const mockGetUsers = jest.fn().mockResolvedValue(mockUsers);
 
       // Setup all mocks
@@ -893,7 +893,7 @@ describe('NeuralLogClient', () => {
   describe('getPendingAdminPromotions', () => {
     it('should initialize the client if not initialized', async () => {
       // Create a new client with mocked clients
-      const mockGetPendingAdminPromotions = jest.fn().mockResolvedValue([{ id: 'promotion-1', userId: 'user-1', requestedBy: 'admin-1', status: 'pending', createdAt: new Date() }]);
+      const mockGetPendingAdminPromotions = jest.fn().mockResolvedValue([{ id: 'promotion-1', userId: 'user-1', requestedBy: 'admin-1', status: 'pending', createdAt: new Date().toISOString() }]);
       const mockInitialize = jest.fn().mockResolvedValue(undefined);
 
       // Setup all mocks
@@ -922,7 +922,7 @@ describe('NeuralLogClient', () => {
 
     it('should delegate to the user client', async () => {
       // Create a new client with mocked clients
-      const mockPromotions = [{ id: 'promotion-1', userId: 'user-1', requestedBy: 'admin-1', status: 'pending', createdAt: new Date() }];
+      const mockPromotions = [{ id: 'promotion-1', userId: 'user-1', requestedBy: 'admin-1', status: 'pending', createdAt: new Date().toISOString() }];
       const mockGetPendingAdminPromotions = jest.fn().mockResolvedValue(mockPromotions);
 
       // Setup all mocks
@@ -1244,7 +1244,7 @@ describe('NeuralLogClient', () => {
   describe('getApiKeys', () => {
     it('should initialize the client if not initialized', async () => {
       // Create a new client with mocked clients
-      const mockGetApiKeys = jest.fn().mockResolvedValue([{ id: 'api-key-1', name: 'test-key', permissions: [], createdAt: new Date() }]);
+      const mockGetApiKeys = jest.fn().mockResolvedValue([{ id: 'api-key-1', name: 'test-key', permissions: [], createdAt: new Date().toISOString() }]);
       const mockInitialize = jest.fn().mockResolvedValue(undefined);
 
       // Setup all mocks
@@ -1273,7 +1273,7 @@ describe('NeuralLogClient', () => {
 
     it('should delegate to the API key client', async () => {
       // Create a new client with mocked clients
-      const mockApiKeys = [{ id: 'api-key-1', name: 'test-key', permissions: [], createdAt: new Date() }];
+      const mockApiKeys = [{ id: 'api-key-1', name: 'test-key', permissions: [], createdAt: new Date().toISOString() }];
       const mockGetApiKeys = jest.fn().mockResolvedValue(mockApiKeys);
 
       // Setup all mocks
@@ -1420,7 +1420,7 @@ describe('NeuralLogClient', () => {
   describe('getKEKVersions', () => {
     it('should initialize the client if not initialized', async () => {
       // Create a new client with mocked clients
-      const mockGetKEKVersions = jest.fn().mockResolvedValue([{ id: 'kek-1', version: 'v1', active: true, createdAt: new Date() }]);
+      const mockGetKEKVersions = jest.fn().mockResolvedValue([{ id: 'kek-1', version: 'v1', active: true, createdAt: new Date().toISOString() }]);
       const mockInitialize = jest.fn().mockResolvedValue(undefined);
 
       // Setup all mocks
@@ -1449,7 +1449,7 @@ describe('NeuralLogClient', () => {
 
     it('should delegate to the key management client', async () => {
       // Create a new client with mocked clients
-      const mockKEKVersions = [{ id: 'kek-1', version: 'v1', active: true, createdAt: new Date() }];
+      const mockKEKVersions = [{ id: 'kek-1', version: 'v1', active: true, createdAt: new Date().toISOString() }];
       const mockGetKEKVersions = jest.fn().mockResolvedValue(mockKEKVersions);
 
       // Setup all mocks
@@ -1509,7 +1509,7 @@ describe('NeuralLogClient', () => {
   describe('createKEKVersion', () => {
     it('should initialize the client if not initialized', async () => {
       // Create a new client with mocked clients
-      const mockCreateKEKVersion = jest.fn().mockResolvedValue({ id: 'kek-1', version: 'v1', active: true, createdAt: new Date() });
+      const mockCreateKEKVersion = jest.fn().mockResolvedValue({ id: 'kek-1', version: 'v1', active: true, createdAt: new Date().toISOString() });
       const mockInitialize = jest.fn().mockResolvedValue(undefined);
 
       // Setup all mocks
@@ -1538,7 +1538,7 @@ describe('NeuralLogClient', () => {
 
     it('should delegate to the key management client', async () => {
       // Create a new client with mocked clients
-      const mockKEKVersion = { id: 'kek-1', version: 'v1', active: true, createdAt: new Date() };
+      const mockKEKVersion = { id: 'kek-1', version: 'v1', active: true, createdAt: new Date().toISOString() };
       const mockCreateKEKVersion = jest.fn().mockResolvedValue(mockKEKVersion);
 
       // Setup all mocks
@@ -1598,7 +1598,7 @@ describe('NeuralLogClient', () => {
   describe('rotateKEK', () => {
     it('should initialize the client if not initialized', async () => {
       // Create a new client with mocked clients
-      const mockRotateKEK = jest.fn().mockResolvedValue({ id: 'kek-1', version: 'v1', active: true, createdAt: new Date() });
+      const mockRotateKEK = jest.fn().mockResolvedValue({ id: 'kek-1', version: 'v1', active: true, createdAt: new Date().toISOString() });
       const mockInitialize = jest.fn().mockResolvedValue(undefined);
 
       // Setup all mocks
@@ -1627,7 +1627,7 @@ describe('NeuralLogClient', () => {
 
     it('should delegate to the key management client', async () => {
       // Create a new client with mocked clients
-      const mockKEKVersion = { id: 'kek-1', version: 'v1', active: true, createdAt: new Date() };
+      const mockKEKVersion = { id: 'kek-1', version: 'v1', active: true, createdAt: new Date().toISOString() };
       const mockRotateKEK = jest.fn().mockResolvedValue(mockKEKVersion);
 
       // Setup all mocks
