@@ -1,6 +1,7 @@
 import { AxiosInstance } from 'axios';
 import axios from 'axios';
 import { LogError } from '../errors';
+import { Log, LogEntry, LogCreateOptions, LogUpdateOptions, LogSearchOptions, LogStatistics, PaginatedResult } from '../types';
 
 /**
  * Service for interacting with the NeuralLog logs service
@@ -80,34 +81,70 @@ export class LogsService {
   }
 
   /**
-   * Get logs from the specified log
+   * Create a new log
    *
-   * @param logName Log name
-   * @param limit Maximum number of logs to return
-   * @param resourceToken Resource token
-   * @returns Promise that resolves to the logs
+   * @param authToken Authentication token
+   * @param encryptedName Encrypted log name
+   * @param options Log creation options
+   * @returns Promise that resolves to the created log
    */
-  public async getLogs(
-    logName: string,
-    limit: number,
-    resourceToken: string
-  ): Promise<Array<{ id: string; timestamp: string; data: Record<string, any> }>> {
+  public async createLog(
+    authToken: string,
+    encryptedName: string,
+    options: LogCreateOptions = {}
+  ): Promise<Log> {
     try {
-      const response = await this.apiClient.get(
-        `${this.baseUrl}/logs/${logName}`,
+      const response = await this.apiClient.post(
+        `${this.baseUrl}/logs`,
         {
-          params: { limit },
+          name: encryptedName,
+          ...options
+        },
+        {
           headers: {
-            Authorization: `Bearer ${resourceToken}`
+            Authorization: `Bearer ${authToken}`
           }
         }
       );
 
-      return response.data.entries || [];
+      return response.data;
+    } catch (error) {
+      throw new LogError(
+        `Failed to create log: ${error instanceof Error ? error.message : String(error)}`,
+        'create_log_failed'
+      );
+    }
+  }
+
+  /**
+   * Get logs
+   *
+   * @param authToken Authentication token
+   * @param limit Maximum number of logs to return (optional)
+   * @param offset Offset for pagination (optional)
+   * @returns Promise that resolves to the logs
+   */
+  public async getLogs(
+    authToken: string,
+    limit: number = 100,
+    offset: number = 0
+  ): Promise<Log[]> {
+    try {
+      const response = await this.apiClient.get(
+        `${this.baseUrl}/logs`,
+        {
+          params: { limit, offset },
+          headers: {
+            Authorization: `Bearer ${authToken}`
+          }
+        }
+      );
+
+      return response.data.logs || [];
     } catch (error) {
       throw new LogError(
         `Failed to get logs: ${error instanceof Error ? error.message : String(error)}`,
-        'get_logs_failed'
+        'get_all_logs_failed'
       );
     }
   }
@@ -217,19 +254,317 @@ export class LogsService {
   }
 
   /**
-   * Delete a log
+   * Get a log by name
    *
-   * @param logName Log name
-   * @param resourceToken Resource token
-   * @returns Promise that resolves when the log is deleted
+   * @param authToken Authentication token
+   * @param encryptedName Encrypted log name
+   * @returns Promise that resolves to the log
    */
-  public async deleteLog(logName: string, resourceToken: string): Promise<void> {
+  public async getLog(authToken: string, encryptedName: string): Promise<Log> {
     try {
-      await this.apiClient.delete(
-        `${this.baseUrl}/logs/${logName}`,
+      const response = await this.apiClient.get(
+        `${this.baseUrl}/logs/${encryptedName}`,
         {
           headers: {
-            Authorization: `Bearer ${resourceToken}`
+            Authorization: `Bearer ${authToken}`
+          }
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      throw new LogError(
+        `Failed to get log: ${error instanceof Error ? error.message : String(error)}`,
+        'get_log_failed'
+      );
+    }
+  }
+
+  /**
+   * Update a log
+   *
+   * @param authToken Authentication token
+   * @param encryptedName Encrypted log name
+   * @param options Log update options
+   * @returns Promise that resolves to the updated log
+   */
+  public async updateLog(
+    authToken: string,
+    encryptedName: string,
+    options: LogUpdateOptions
+  ): Promise<Log> {
+    try {
+      const response = await this.apiClient.put(
+        `${this.baseUrl}/logs/${encryptedName}`,
+        options,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`
+          }
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      throw new LogError(
+        `Failed to update log: ${error instanceof Error ? error.message : String(error)}`,
+        'update_log_failed'
+      );
+    }
+  }
+
+  /**
+   * Append a log entry
+   *
+   * @param authToken Authentication token
+   * @param encryptedLogName Encrypted log name
+   * @param encryptedData Encrypted log data
+   * @param options Additional options
+   * @returns Promise that resolves to the log entry
+   */
+  public async appendLogEntry(
+    authToken: string,
+    encryptedLogName: string,
+    encryptedData: any,
+    options: any = {}
+  ): Promise<LogEntry> {
+    try {
+      const response = await this.apiClient.post(
+        `${this.baseUrl}/logs/${encryptedLogName}/entries`,
+        {
+          data: encryptedData,
+          ...options
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`
+          }
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      throw new LogError(
+        `Failed to append log entry: ${error instanceof Error ? error.message : String(error)}`,
+        'append_log_entry_failed'
+      );
+    }
+  }
+
+  /**
+   * Get log entries
+   *
+   * @param authToken Authentication token
+   * @param encryptedLogName Encrypted log name
+   * @param limit Maximum number of entries to return
+   * @param offset Offset for pagination
+   * @returns Promise that resolves to the log entries
+   */
+  public async getLogEntries(
+    authToken: string,
+    encryptedLogName: string,
+    limit: number = 10,
+    offset: number = 0
+  ): Promise<PaginatedResult<LogEntry>> {
+    try {
+      const response = await this.apiClient.get(
+        `${this.baseUrl}/logs/${encryptedLogName}/entries`,
+        {
+          params: { limit, offset },
+          headers: {
+            Authorization: `Bearer ${authToken}`
+          }
+        }
+      );
+
+      const entries = response.data.entries || [];
+      const totalCount = response.data.total_count || 0;
+
+      return {
+        entries,
+        items: entries,
+        total: totalCount,
+        totalCount,
+        offset,
+        limit,
+        hasMore: (offset + entries.length) < totalCount
+      };
+    } catch (error) {
+      throw new LogError(
+        `Failed to get log entries: ${error instanceof Error ? error.message : String(error)}`,
+        'get_log_entries_failed'
+      );
+    }
+  }
+
+  /**
+   * Get a log entry
+   *
+   * @param authToken Authentication token
+   * @param encryptedLogName Encrypted log name
+   * @param entryId Log entry ID
+   * @returns Promise that resolves to the log entry
+   */
+  public async getLogEntry(
+    authToken: string,
+    encryptedLogName: string,
+    entryId: string
+  ): Promise<LogEntry> {
+    try {
+      const response = await this.apiClient.get(
+        `${this.baseUrl}/logs/${encryptedLogName}/entries/${entryId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`
+          }
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      throw new LogError(
+        `Failed to get log entry: ${error instanceof Error ? error.message : String(error)}`,
+        'get_log_entry_failed'
+      );
+    }
+  }
+
+  /**
+   * Search log entries
+   *
+   * @param authToken Authentication token
+   * @param encryptedLogName Encrypted log name
+   * @param options Search options
+   * @returns Promise that resolves to the search results
+   */
+  public async searchLogEntries(
+    authToken: string,
+    encryptedLogName: string,
+    options: any
+  ): Promise<PaginatedResult<LogEntry>> {
+    try {
+      const response = await this.apiClient.post(
+        `${this.baseUrl}/logs/${encryptedLogName}/search`,
+        options,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`
+          }
+        }
+      );
+
+      const entries = response.data.entries || [];
+      const totalCount = response.data.total_count || 0;
+      const offset = options.offset || 0;
+      const limit = options.limit || 10;
+
+      return {
+        entries,
+        items: entries,
+        total: totalCount,
+        totalCount,
+        offset,
+        limit,
+        hasMore: (offset + entries.length) < totalCount
+      };
+    } catch (error) {
+      throw new LogError(
+        `Failed to search log entries: ${error instanceof Error ? error.message : String(error)}`,
+        'search_log_entries_failed'
+      );
+    }
+  }
+
+  /**
+   * Get log statistics
+   *
+   * @param authToken Authentication token
+   * @param encryptedLogName Encrypted log name
+   * @returns Promise that resolves to the log statistics
+   */
+  public async getLogStatistics(
+    authToken: string,
+    encryptedLogName: string
+  ): Promise<LogStatistics> {
+    try {
+      const response = await this.apiClient.get(
+        `${this.baseUrl}/logs/${encryptedLogName}/statistics`,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`
+          }
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      throw new LogError(
+        `Failed to get log statistics: ${error instanceof Error ? error.message : String(error)}`,
+        'get_log_statistics_failed'
+      );
+    }
+  }
+
+  /**
+   * Batch append log entries
+   *
+   * @param authToken Authentication token
+   * @param encryptedLogName Encrypted log name
+   * @param encryptedEntries Encrypted log entries
+   * @returns Promise that resolves to the log entries
+   */
+  public async batchAppendLogEntries(
+    authToken: string,
+    encryptedLogName: string,
+    encryptedEntries: any[]
+  ): Promise<PaginatedResult<LogEntry>> {
+    try {
+      const response = await this.apiClient.post(
+        `${this.baseUrl}/logs/${encryptedLogName}/entries/batch`,
+        { entries: encryptedEntries },
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`
+          }
+        }
+      );
+
+      const entries = response.data.entries || [];
+      const totalCount = entries.length;
+
+      return {
+        entries,
+        items: entries,
+        total: totalCount,
+        totalCount,
+        offset: 0,
+        limit: encryptedEntries.length,
+        hasMore: false
+      };
+    } catch (error) {
+      throw new LogError(
+        `Failed to batch append log entries: ${error instanceof Error ? error.message : String(error)}`,
+        'batch_append_log_entries_failed'
+      );
+    }
+  }
+
+
+
+  /**
+   * Delete a log
+   *
+   * @param authToken Authentication token
+   * @param encryptedName Encrypted log name
+   * @returns Promise that resolves when the log is deleted
+   */
+  public async deleteLog(authToken: string, encryptedName: string): Promise<void> {
+    try {
+      await this.apiClient.delete(
+        `${this.baseUrl}/logs/${encryptedName}`,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`
           }
         }
       );

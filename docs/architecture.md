@@ -51,6 +51,60 @@ The NeuralLog TypeScript Client SDK is the cornerstone of NeuralLog's zero-knowl
 
 ## Key Components
 
+### Client Architecture
+
+The SDK is designed using a facade pattern, where the main `NeuralLogClient` class delegates to specialized client classes:
+
+- `LogClient`: For log operations (logging, retrieving, searching)
+- `AuthClient`: For authentication operations (login, logout, permissions)
+- `UserClient`: For user operations (managing users, admin promotions)
+- `KeyManagementClient`: For key management operations (KEK versions, rotation)
+- `ApiKeyClient`: For API key operations (creating, revoking)
+
+This architecture provides several benefits:
+
+1. **Improved Maintainability**: Each client class has a clear, focused responsibility
+2. **Better Testability**: Smaller classes are easier to test in isolation
+3. **Enhanced Flexibility**: Users can use just the clients they need
+4. **Backward Compatibility**: The facade pattern ensures existing code continues to work
+
+#### Class Diagram
+
+```
+┌─────────────────────┐
+│  NeuralLogClient    │
+└─────────────────────┘
+          │
+          ├─────────────┬─────────────┬─────────────┬─────────────┐
+          ▼             ▼             ▼             ▼             ▼
+┌─────────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+│   LogClient     │ │ AuthClient  │ │ UserClient  │ │KeyManagement│ │ ApiKeyClient│
+└─────────────────┘ └─────────────┘ └─────────────┘ │   Client    │ └─────────────┘
+          │             │             │             └─────────────┘        │
+          ▼             ▼             ▼                   │                ▼
+┌─────────────────┐ ┌─────────────┐ ┌─────────────┐      ▼          ┌─────────────┐
+│   LogManager    │ │ AuthManager │ │ UserManager │ ┌─────────────┐ │ AuthManager │
+└─────────────────┘ └─────────────┘ └─────────────┘ │KeyHierarchy │ └─────────────┘
+                                                    │  Manager    │
+                                                    └─────────────┘
+```
+
+#### Factory Pattern
+
+The SDK also includes a factory pattern for creating clients:
+
+```typescript
+// Create a full client
+const client = NeuralLogClientFactory.createClient(options);
+
+// Create specialized clients
+const logClient = NeuralLogClientFactory.createLogClient(options);
+const authClient = NeuralLogClientFactory.createAuthClient(options);
+const userClient = NeuralLogClientFactory.createUserClient(options);
+const keyManagementClient = NeuralLogClientFactory.createKeyManagementClient(options);
+const apiKeyClient = NeuralLogClientFactory.createApiKeyClient(options);
+```
+
 ### NeuralLogClient
 
 The `NeuralLogClient` class is the main entry point for the SDK. It provides a high-level interface for interacting with the NeuralLog system, including:
@@ -318,3 +372,7 @@ The SDK integrates with the NeuralLog Registry Service for:
 - **End-to-End Encryption**: Extend the zero-knowledge architecture to cover all aspects of the system
 - **Hardware Security Module (HSM) Support**: Add support for hardware-based key storage
 - **Multi-Factor Authentication**: Enhance authentication with MFA support
+- **Additional Specialized Clients**: Create more specialized clients for specific use cases
+- **Plugin Architecture**: Implement a plugin architecture for extending client functionality
+- **Reactive Programming**: Add support for reactive programming patterns (RxJS, Observables)
+- **Streaming Support**: Implement streaming support for real-time log processing

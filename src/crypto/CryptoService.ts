@@ -1,9 +1,15 @@
 import { LogError } from '../errors';
+import { LogErrorCode } from '../errors/LogErrorCode';
 import { EncryptedKEK, KEKVersion, LogEncryptionInfo } from '../types';
 import { ShamirSecretSharing, SecretShare, SerializedSecretShare } from './ShamirSecretSharing';
 import { MnemonicService } from './MnemonicService';
 import { KeyPairService } from './KeyPairService';
-import { KeyDerivation, KeyDerivationOptions } from './KeyDerivation';
+import { KeyDerivation } from './KeyDerivation';
+import { Base64Utils } from './Base64Utils';
+import { AesUtils } from './AesUtils';
+import { HmacUtils } from './HmacUtils';
+import { RandomUtils } from './RandomUtils';
+import { bytesToUtf8 } from '@noble/ciphers/utils';
 
 /**
  * Service for cryptographic operations
@@ -43,6 +49,21 @@ export class CryptoService {
   }
 
   /**
+   * Helper method to handle errors consistently
+   *
+   * @param error The error to handle
+   * @param operation The operation that failed
+   * @param errorCode The error code to use
+   * @throws LogError with a consistent format
+   */
+  protected handleError(error: unknown, operation: string, errorCode: LogErrorCode): never {
+    throw new LogError(
+      `Failed to ${operation}: ${error instanceof Error ? error.message : String(error)}`,
+      errorCode
+    );
+  }
+
+  /**
    * Get the mnemonic service
    *
    * @returns The mnemonic service
@@ -65,15 +86,8 @@ export class CryptoService {
    * @param buffer ArrayBuffer
    * @returns Base64 string
    */
-  private arrayBufferToBase64(buffer: ArrayBuffer): string {
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-
-    return btoa(binary);
+  public arrayBufferToBase64(buffer: ArrayBuffer): string {
+    return Base64Utils.arrayBufferToBase64(buffer);
   }
 
   /**
@@ -82,42 +96,8 @@ export class CryptoService {
    * @param base64 Base64 string
    * @returns ArrayBuffer
    */
-  private base64ToArrayBuffer(base64: string): ArrayBuffer {
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-
-    return bytes.buffer;
-  }
-
-  /**
-   * Convert an ArrayBuffer to URL-safe Base64
-   *
-   * @param buffer ArrayBuffer
-   * @returns URL-safe Base64 string
-   */
-  private arrayBufferToBase64Url(buffer: ArrayBuffer): string {
-    return this.arrayBufferToBase64(buffer)
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
-  }
-
-  /**
-   * Convert a URL-safe Base64 string to ArrayBuffer
-   *
-   * @param base64Url URL-safe Base64 string
-   * @returns ArrayBuffer
-   */
-  private base64UrlToArrayBuffer(base64Url: string): ArrayBuffer {
-    const base64 = base64Url
-      .replace(/-/g, '+')
-      .replace(/_/g, '/');
-
-    return this.base64ToArrayBuffer(base64);
+  public base64ToArrayBuffer(base64: string): ArrayBuffer {
+    return Base64Utils.base64ToArrayBuffer(base64);
   }
 
   /**
@@ -134,50 +114,16 @@ export class CryptoService {
       // Derive the log key
       const logKey = await this.deriveLogKey();
 
-      // Convert data to string
-      const dataString = typeof data === 'string' ? data : JSON.stringify(data);
-      const dataBuffer = new TextEncoder().encode(dataString);
+      // Encrypt data using AesEncryptionUtils
+      const encryptedData = AesUtils.encrypt(logKey, data);
 
-      // Import log key
-      const cryptoKey = await crypto.subtle.importKey(
-        'raw',
-        logKey,
-        { name: 'AES-GCM', length: 256 },
-        false,
-        ['encrypt']
-      );
-
-      // Generate IV
-      const iv = crypto.getRandomValues(new Uint8Array(12));
-
-      // Encrypt data
-      const encryptedData = await crypto.subtle.encrypt(
-        {
-          name: 'AES-GCM',
-          iv,
-          tagLength: 128
-        },
-        cryptoKey,
-        dataBuffer
-      );
-
-      // Convert to Base64
-      const encryptedDataBase64 = this.arrayBufferToBase64(encryptedData);
-      const ivBase64 = this.arrayBufferToBase64(iv);
-
-      // Return encrypted data with version information
+      // Add KEK version to the encrypted data
       return {
-        encrypted: true,
-        algorithm: 'aes-256-gcm',
-        iv: ivBase64,
-        data: encryptedDataBase64,
+        ...encryptedData,
         kekVersion
       };
     } catch (error) {
-      throw new LogError(
-        `Failed to encrypt log data: ${error instanceof Error ? error.message : String(error)}`,
-        'encrypt_log_data_failed'
-      );
+      return this.handleError(error, 'encrypt log data', 'encrypt_log_data_failed');
     }
   }
 
@@ -187,124 +133,54 @@ export class CryptoService {
    * @param encryptedData Encrypted log data with version information
    * @returns Promise that resolves to the decrypted log data
    */
-  public async decryptLogData(encryptedData: Record<string, any>): Promise<any> {
+  public async decryptLogData(encryptedData: Record<string, any> | string): Promise<any> {
     try {
+      // If encryptedData is a string or doesn't have the required properties, handle it in AesUtils.decryptWithMetadata
+      if (typeof encryptedData !== 'object' || !encryptedData || !encryptedData.kekVersion) {
+        // If no KEK version, use the current one
+        const logKey = await this.deriveLogKey();
+        return AesUtils.decryptWithMetadata(logKey, encryptedData);
+      }
+
       // Get the KEK version from the encrypted data
-      const kekVersion = encryptedData.kekVersion || this.getCurrentKEKVersion();
+      const kekVersion = encryptedData.kekVersion;
 
       // Get the operational KEK for this version
       const operationalKEK = this.getOperationalKEK(kekVersion);
 
-      // Import operational KEK as key material
-      const keyMaterial = await crypto.subtle.importKey(
-        'raw',
-        operationalKEK,
-        { name: 'HKDF' },
-        false,
-        ['deriveBits', 'deriveKey']
-      );
+      // Derive the log key for this KEK version
+      const logKey = await KeyDerivation.deriveKeyWithHKDF(operationalKEK, {
+        salt: 'NeuralLog-LogKey',
+        info: 'logs',
+        hash: 'SHA-256',
+        keyLength: 256 // 32 bytes
+      });
 
-      // Create salt and info for log key
-      const salt = new TextEncoder().encode('NeuralLog-LogKey');
-      const info = new TextEncoder().encode('logs');
-
-      // Derive log key using HKDF
-      const derivedBits = await crypto.subtle.deriveBits(
-        {
-          name: 'HKDF',
-          hash: 'SHA-256',
-          salt,
-          info
-        },
-        keyMaterial,
-        256 // 32 bytes
-      );
-
-      const logKey = new Uint8Array(derivedBits);
-
-      // Import log key
-      const cryptoKey = await crypto.subtle.importKey(
-        'raw',
-        logKey,
-        { name: 'AES-GCM', length: 256 },
-        false,
-        ['decrypt']
-      );
-
-      // Get IV and encrypted data
-      const iv = this.base64ToArrayBuffer(encryptedData.iv);
-      const data = this.base64ToArrayBuffer(encryptedData.data);
-
-      // Decrypt data
-      const decryptedData = await crypto.subtle.decrypt(
-        {
-          name: 'AES-GCM',
-          iv,
-          tagLength: 128
-        },
-        cryptoKey,
-        data
-      );
-
-      // Convert to string
-      const decryptedString = new TextDecoder().decode(decryptedData);
-
-      // Parse JSON
-      try {
-        return JSON.parse(decryptedString);
-      } catch {
-        return decryptedString;
-      }
+      // Decrypt data using AesEncryptionUtils
+      return AesUtils.decryptWithMetadata(logKey, encryptedData);
     } catch (error) {
-      throw new LogError(
-        `Failed to decrypt log data: ${error instanceof Error ? error.message : String(error)}`,
-        'decrypt_log_data_failed'
-      );
+      return this.handleError(error, 'decrypt log data', 'decrypt_log_data_failed');
     }
   }
 
   /**
    * Generate search tokens
    *
-   * @param query Search query
-   * @param searchKey Search key
+   * @param query Search query or data object
+   * @param searchKey Optional search key (if not provided, will derive from current KEK)
    * @returns Promise that resolves to the search tokens
    */
-  public async generateSearchTokens(query: string, searchKey: Uint8Array): Promise<string[]> {
+  public async generateSearchTokens(query: string | any, searchKey?: Uint8Array): Promise<string[]> {
     try {
-      // Import search key
-      const cryptoKey = await crypto.subtle.importKey(
-        'raw',
-        searchKey,
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign']
-      );
+      // If searchKey is not provided, derive it from the current KEK
+      if (!searchKey) {
+        searchKey = await this.deriveSearchKey();
+      }
 
-      // Split query into tokens
-      const tokens = query.toLowerCase().split(/\s+/);
-
-      // Generate search tokens
-      const searchTokens = await Promise.all(
-        tokens.map(async (token) => {
-          // Generate token hash
-          const tokenBuffer = await crypto.subtle.sign(
-            'HMAC',
-            cryptoKey,
-            new TextEncoder().encode(token)
-          );
-
-          // Convert to Base64
-          return this.arrayBufferToBase64Url(tokenBuffer);
-        })
-      );
-
-      return searchTokens;
+      // Generate search tokens using HmacUtils
+      return HmacUtils.generateSearchTokens(query, searchKey);
     } catch (error) {
-      throw new LogError(
-        `Failed to generate search tokens: ${error instanceof Error ? error.message : String(error)}`,
-        'generate_search_tokens_failed'
-      );
+      return this.handleError(error, 'generate search tokens', 'generate_search_tokens_failed');
     }
   }
 
@@ -322,54 +198,10 @@ export class CryptoService {
       // Derive the log name key
       const logNameKey = await this.deriveLogNameKey();
 
-      // Import log name key
-      const cryptoKey = await crypto.subtle.importKey(
-        'raw',
-        logNameKey,
-        { name: 'AES-GCM', length: 256 },
-        false,
-        ['encrypt']
-      );
-
-      // Generate IV
-      const iv = crypto.getRandomValues(new Uint8Array(12));
-
-      // Encrypt log name
-      const encryptedData = await crypto.subtle.encrypt(
-        {
-          name: 'AES-GCM',
-          iv,
-          tagLength: 128
-        },
-        cryptoKey,
-        new TextEncoder().encode(logName)
-      );
-
-      // Combine version, IV and encrypted data
-      const versionBytes = new TextEncoder().encode(kekVersion);
-      const versionLength = new Uint8Array([versionBytes.length]);
-
-      const combined = new Uint8Array(versionLength.length + versionBytes.length + iv.length + new Uint8Array(encryptedData).length);
-      let offset = 0;
-
-      combined.set(versionLength, offset);
-      offset += versionLength.length;
-
-      combined.set(versionBytes, offset);
-      offset += versionBytes.length;
-
-      combined.set(iv, offset);
-      offset += iv.length;
-
-      combined.set(new Uint8Array(encryptedData), offset);
-
-      // Convert to Base64URL
-      return this.arrayBufferToBase64Url(combined.buffer);
+      // Encrypt log name using AesUtils
+      return AesUtils.encryptWithVersion(logNameKey, logName, kekVersion);
     } catch (error) {
-      throw new LogError(
-        `Failed to encrypt log name: ${error instanceof Error ? error.message : String(error)}`,
-        'encrypt_log_name_failed'
-      );
+      return this.handleError(error, 'encrypt log name', 'encrypt_log_name_failed');
     }
   }
 
@@ -382,76 +214,30 @@ export class CryptoService {
   public async decryptLogName(encryptedLogName: string): Promise<string> {
     try {
       // Convert Base64URL to ArrayBuffer
-      const combined = this.base64UrlToArrayBuffer(encryptedLogName);
+      const combined = Base64Utils.base64UrlToArrayBuffer(encryptedLogName);
       const combinedArray = new Uint8Array(combined);
 
       // Extract version length, version, IV and encrypted data
       const versionLength = combinedArray[0];
       const versionBytes = combinedArray.slice(1, 1 + versionLength);
-      const kekVersion = new TextDecoder().decode(versionBytes);
-
-      let offset = 1 + versionLength;
-      const iv = combinedArray.slice(offset, offset + 12);
-      offset += 12;
-      const encryptedData = combinedArray.slice(offset);
+      const kekVersion = bytesToUtf8(versionBytes);
 
       // Get the operational KEK for this version
       const operationalKEK = this.getOperationalKEK(kekVersion);
 
-      // Import operational KEK as key material
-      const keyMaterial = await crypto.subtle.importKey(
-        'raw',
-        operationalKEK,
-        { name: 'HKDF' },
-        false,
-        ['deriveBits', 'deriveKey']
-      );
+      // Derive the log name key for this KEK version
+      const logNameKey = await KeyDerivation.deriveKeyWithHKDF(operationalKEK, {
+        salt: 'NeuralLog-LogNameKey',
+        info: 'log-names',
+        hash: 'SHA-256',
+        keyLength: 256 // 32 bytes
+      });
 
-      // Create salt and info for log name key
-      const salt = new TextEncoder().encode('NeuralLog-LogNameKey');
-      const info = new TextEncoder().encode('log-names');
-
-      // Derive log name key using HKDF
-      const derivedBits = await crypto.subtle.deriveBits(
-        {
-          name: 'HKDF',
-          hash: 'SHA-256',
-          salt,
-          info
-        },
-        keyMaterial,
-        256 // 32 bytes
-      );
-
-      const logNameKey = new Uint8Array(derivedBits);
-
-      // Import log name key
-      const cryptoKey = await crypto.subtle.importKey(
-        'raw',
-        logNameKey,
-        { name: 'AES-GCM', length: 256 },
-        false,
-        ['decrypt']
-      );
-
-      // Decrypt log name
-      const decryptedData = await crypto.subtle.decrypt(
-        {
-          name: 'AES-GCM',
-          iv,
-          tagLength: 128
-        },
-        cryptoKey,
-        encryptedData
-      );
-
-      // Convert to string
-      return new TextDecoder().decode(decryptedData);
+      // Decrypt log name using AesUtils
+      const decryptedResult = AesUtils.decryptWithVersion(logNameKey, encryptedLogName);
+      return decryptedResult.data;
     } catch (error) {
-      throw new LogError(
-        `Failed to decrypt log name: ${error instanceof Error ? error.message : String(error)}`,
-        'decrypt_log_name_failed'
-      );
+      return this.handleError(error, 'decrypt log name', 'decrypt_log_name_failed');
     }
   }
 
@@ -475,10 +261,7 @@ export class CryptoService {
         keyLength: 256 // 32 bytes
       });
     } catch (error) {
-      throw new LogError(
-        `Failed to derive master secret: ${error instanceof Error ? error.message : String(error)}`,
-        'derive_master_secret_failed'
-      );
+      return this.handleError(error, 'derive master secret', 'derive_master_secret_failed');
     }
   }
 
@@ -507,10 +290,7 @@ export class CryptoService {
         keyLength: 256 // 32 bytes
       });
     } catch (error) {
-      throw new LogError(
-        `Failed to derive master secret from mnemonic: ${error instanceof Error ? error.message : String(error)}`,
-        'derive_master_secret_from_mnemonic_failed'
-      );
+      return this.handleError(error, 'derive master secret from mnemonic', 'derive_master_secret_from_mnemonic_failed');
     }
   }
 
@@ -518,18 +298,22 @@ export class CryptoService {
    * Generate a Key Encryption Key (KEK)
    *
    * @param version Optional version identifier (defaults to 'v1')
-   * @returns Promise that resolves to the KEK
+   * @returns Promise that resolves to the KEK and sets it as the current version
    */
   public async generateKEK(version: string = 'v1'): Promise<Uint8Array> {
     try {
       // Generate a random key
-      const key = crypto.getRandomValues(new Uint8Array(32));
+      const key = RandomUtils.generateRandomBytes(32);
+
+      // Store in the map
+      this.operationalKEKs.set(version, key);
+
+      // Update current version
+      this.currentKEKVersion = version;
+
       return key;
     } catch (error) {
-      throw new LogError(
-        `Failed to generate KEK: ${error instanceof Error ? error.message : String(error)}`,
-        'generate_kek_failed'
-      );
+      return this.handleError(error, 'generate KEK', 'generate_kek_failed');
     }
   }
 
@@ -552,12 +336,9 @@ export class CryptoService {
       // Store the master KEK
       this.masterKEK = derivedKey;
 
-      return this.masterKEK;
+      return derivedKey;
     } catch (error) {
-      throw new LogError(
-        `Failed to derive master KEK: ${error instanceof Error ? error.message : String(error)}`,
-        'derive_master_kek_failed'
-      );
+      return this.handleError(error, 'derive master KEK', 'derive_master_kek_failed');
     }
   }
 
@@ -591,10 +372,7 @@ export class CryptoService {
 
       return operationalKEK;
     } catch (error) {
-      throw new LogError(
-        `Failed to derive KEK: ${error instanceof Error ? error.message : String(error)}`,
-        'derive_kek_failed'
-      );
+      return this.handleError(error, 'derive KEK', 'derive_kek_failed');
     }
   }
 
@@ -647,10 +425,7 @@ export class CryptoService {
         version
       };
     } catch (error) {
-      throw new LogError(
-        `Failed to encrypt KEK: ${error instanceof Error ? error.message : String(error)}`,
-        'encrypt_kek_failed'
-      );
+      return this.handleError(error, 'encrypt KEK', 'encrypt_kek_failed');
     }
   }
 
@@ -693,10 +468,7 @@ export class CryptoService {
       // Return decrypted KEK
       return new Uint8Array(decryptedKEK);
     } catch (error) {
-      throw new LogError(
-        `Failed to decrypt KEK: ${error instanceof Error ? error.message : String(error)}`,
-        'decrypt_kek_failed'
-      );
+      return this.handleError(error, 'decrypt KEK', 'decrypt_kek_failed');
     }
   }
 
@@ -706,20 +478,7 @@ export class CryptoService {
    * @returns Promise that resolves to the ID
    */
   public async generateId(): Promise<string> {
-    try {
-      // Generate random bytes
-      const bytes = crypto.getRandomValues(new Uint8Array(16));
-
-      // Convert to hex string
-      return Array.from(bytes)
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-    } catch (error) {
-      throw new LogError(
-        `Failed to generate ID: ${error instanceof Error ? error.message : String(error)}`,
-        'generate_id_failed'
-      );
-    }
+    return RandomUtils.generateId();
   }
 
   /**
@@ -807,10 +566,7 @@ export class CryptoService {
         keyLength: 256 // 32 bytes
       });
     } catch (error) {
-      throw new LogError(
-        `Failed to derive log key: ${error instanceof Error ? error.message : String(error)}`,
-        'derive_log_key_failed'
-      );
+      return this.handleError(error, 'derive log key', 'derive_log_key_failed');
     }
   }
 
@@ -832,10 +588,7 @@ export class CryptoService {
         keyLength: 256 // 32 bytes
       });
     } catch (error) {
-      throw new LogError(
-        `Failed to derive log name key: ${error instanceof Error ? error.message : String(error)}`,
-        'derive_log_name_key_failed'
-      );
+      return this.handleError(error, 'derive log name key', 'derive_log_name_key_failed');
     }
   }
 
@@ -865,10 +618,7 @@ export class CryptoService {
 
       return new Uint8Array(keyBytes);
     } catch (error) {
-      throw new LogError(
-        `Failed to derive search key: ${error instanceof Error ? error.message : String(error)}`,
-        'derive_search_key_failed'
-      );
+      return this.handleError(error, 'derive search key', 'derive_search_key_failed');
     }
   }
 
@@ -880,29 +630,10 @@ export class CryptoService {
    */
   public async generateApiKeyVerificationHash(apiKey: string): Promise<string> {
     try {
-      // Import key
-      const cryptoKey = await crypto.subtle.importKey(
-        'raw',
-        new TextEncoder().encode(apiKey),
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign']
-      );
-
-      // Generate hash
-      const hashBuffer = await crypto.subtle.sign(
-        'HMAC',
-        cryptoKey,
-        new TextEncoder().encode('verification')
-      );
-
-      // Convert to Base64
-      return this.arrayBufferToBase64(hashBuffer);
+      // Generate hash using HmacUtils
+      return HmacUtils.generateApiKeyVerificationHash(apiKey);
     } catch (error) {
-      throw new LogError(
-        `Failed to generate API key verification hash: ${error instanceof Error ? error.message : String(error)}`,
-        'generate_api_key_verification_hash_failed'
-      );
+      return this.handleError(error, 'generate API key verification hash', 'generate_api_key_verification_hash_failed');
     }
   }
 
@@ -914,39 +645,10 @@ export class CryptoService {
    */
   public async generateApiKeyProof(apiKey: string): Promise<string> {
     try {
-      // Generate a random nonce
-      const nonce = crypto.getRandomValues(new Uint8Array(16));
-      const nonceBase64 = this.arrayBufferToBase64(nonce);
-
-      // Import key
-      const cryptoKey = await crypto.subtle.importKey(
-        'raw',
-        new TextEncoder().encode(apiKey),
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign']
-      );
-
-      // Generate proof
-      const proofBuffer = await crypto.subtle.sign(
-        'HMAC',
-        cryptoKey,
-        new TextEncoder().encode(nonceBase64)
-      );
-
-      // Convert to Base64
-      const proofBase64 = this.arrayBufferToBase64(proofBuffer);
-
-      // Return proof and nonce
-      return JSON.stringify({
-        nonce: nonceBase64,
-        proof: proofBase64
-      });
+      // Generate proof using HmacUtils
+      return HmacUtils.generateApiKeyProof(apiKey);
     } catch (error) {
-      throw new LogError(
-        `Failed to generate API key proof: ${error instanceof Error ? error.message : String(error)}`,
-        'generate_api_key_proof_failed'
-      );
+      return this.handleError(error, 'generate API key proof', 'generate_api_key_proof_failed');
     }
   }
 
@@ -962,10 +664,7 @@ export class CryptoService {
     try {
       return ShamirSecretSharing.splitSecret(kek, numShares, threshold);
     } catch (error) {
-      throw new LogError(
-        `Failed to split KEK: ${error instanceof Error ? error.message : String(error)}`,
-        'split_kek_failed'
-      );
+      return this.handleError(error, 'split KEK', 'split_kek_failed');
     }
   }
 
@@ -987,10 +686,7 @@ export class CryptoService {
     try {
       return await this.keyPairService.deriveKeyPair(operationalKEK, userPassword, userId, purpose);
     } catch (error) {
-      throw new LogError(
-        `Failed to derive key pair: ${error instanceof Error ? error.message : String(error)}`,
-        'derive_key_pair_failed'
-      );
+      return this.handleError(error, 'derive key pair', 'derive_key_pair_failed');
     }
   }
 
@@ -1004,10 +700,7 @@ export class CryptoService {
     try {
       return await this.keyPairService.exportPublicKey(publicKey);
     } catch (error) {
-      throw new LogError(
-        `Failed to export public key: ${error instanceof Error ? error.message : String(error)}`,
-        'export_public_key_failed'
-      );
+      return this.handleError(error, 'export public key', 'export_public_key_failed');
     }
   }
 
@@ -1021,10 +714,7 @@ export class CryptoService {
     try {
       return await this.keyPairService.importPublicKey(publicKeyBase64);
     } catch (error) {
-      throw new LogError(
-        `Failed to import public key: ${error instanceof Error ? error.message : String(error)}`,
-        'import_public_key_failed'
-      );
+      return this.handleError(error, 'import public key', 'import_public_key_failed');
     }
   }
 
@@ -1039,10 +729,7 @@ export class CryptoService {
     try {
       return await this.keyPairService.encryptWithPublicKey(publicKey, data);
     } catch (error) {
-      throw new LogError(
-        `Failed to encrypt with public key: ${error instanceof Error ? error.message : String(error)}`,
-        'encrypt_with_public_key_failed'
-      );
+      return this.handleError(error, 'encrypt with public key', 'encrypt_with_public_key_failed');
     }
   }
 
@@ -1057,10 +744,7 @@ export class CryptoService {
     try {
       return await this.keyPairService.decryptWithPrivateKey(privateKey, encryptedData);
     } catch (error) {
-      throw new LogError(
-        `Failed to decrypt with private key: ${error instanceof Error ? error.message : String(error)}`,
-        'decrypt_with_private_key_failed'
-      );
+      return this.handleError(error, 'decrypt with private key', 'decrypt_with_private_key_failed');
     }
   }
 
@@ -1074,10 +758,7 @@ export class CryptoService {
     try {
       return ShamirSecretSharing.reconstructSecret(shares, 32); // KEK is 32 bytes (256 bits)
     } catch (error) {
-      throw new LogError(
-        `Failed to reconstruct KEK: ${error instanceof Error ? error.message : String(error)}`,
-        'reconstruct_kek_failed'
-      );
+      return this.handleError(error, 'reconstruct KEK', 'reconstruct_kek_failed');
     }
   }
 
@@ -1118,10 +799,7 @@ export class CryptoService {
         this.setCurrentKEKVersion('v1');
       }
     } catch (error) {
-      throw new LogError(
-        `Failed to initialize key hierarchy: ${error instanceof Error ? error.message : String(error)}`,
-        'initialize_key_hierarchy_failed'
-      );
+      return this.handleError(error, 'initialize key hierarchy', 'initialize_key_hierarchy_failed');
     }
   }
 
@@ -1147,10 +825,7 @@ export class CryptoService {
         await this.deriveOperationalKEK(version);
       }
     } catch (error) {
-      throw new LogError(
-        `Failed to recover KEK versions: ${error instanceof Error ? error.message : String(error)}`,
-        'recover_kek_versions_failed'
-      );
+      return this.handleError(error, 'recover KEK versions', 'recover_kek_versions_failed');
     }
   }
 

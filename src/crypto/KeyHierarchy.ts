@@ -145,17 +145,11 @@ export class KeyHierarchy {
       // Import crypto service
       const cryptoService = new (await import('./CryptoService')).CryptoService();
 
-      // Derive source log encryption key
-      const sourceLogKey = await this.deriveLogEncryptionKey(tenantId, logName, sourceKekVersion);
+      // Decrypt data using the CryptoService (which will use the appropriate KEK version)
+      const decryptedData = await cryptoService.decryptLogData(encryptedData);
 
-      // Decrypt data with source key
-      const decryptedData = await cryptoService.decryptLogData(encryptedData, sourceLogKey);
-
-      // Derive target log encryption key
-      const targetLogKey = await this.deriveLogEncryptionKey(tenantId, logName, targetKekVersion);
-
-      // Re-encrypt data with target key
-      const reencryptedData = await cryptoService.encryptLogData(decryptedData, targetLogKey);
+      // Re-encrypt data using the CryptoService (which will use the current KEK version)
+      const reencryptedData = await cryptoService.encryptLogData(decryptedData);
 
       // Add KEK version to the encrypted data
       return {

@@ -17,6 +17,7 @@ A zero-knowledge TypeScript client SDK for the NeuralLog system, designed to pro
 - **Zero-Knowledge Proofs**: Prove knowledge of API keys without revealing them
 - **Cross-Platform**: Works in browsers, Node.js, and React Native
 - **TypeScript Support**: Full TypeScript definitions
+- **Modular Architecture**: Specialized client classes for different domains
 
 ## Installation
 
@@ -24,7 +25,74 @@ A zero-knowledge TypeScript client SDK for the NeuralLog system, designed to pro
 npm install @neurallog/client-sdk
 ```
 
+## Architecture
+
+The SDK is designed using a facade pattern, where the main `NeuralLogClient` class delegates to specialized client classes:
+
+- `LogClient`: For log operations (logging, retrieving, searching)
+- `AuthClient`: For authentication operations (login, logout, permissions)
+- `UserClient`: For user operations (managing users, admin promotions)
+- `KeyManagementClient`: For key management operations (KEK versions, rotation)
+- `ApiKeyClient`: For API key operations (creating, revoking)
+
+This architecture provides several benefits:
+
+1. **Improved Maintainability**: Each client class has a clear, focused responsibility
+2. **Better Testability**: Smaller classes are easier to test in isolation
+3. **Enhanced Flexibility**: Users can use just the clients they need
+4. **Backward Compatibility**: The facade pattern ensures existing code continues to work
+
 ## Usage
+
+### Using the Full Client
+
+The main `NeuralLogClient` class provides a facade for all functionality:
+
+```typescript
+import { NeuralLogClient } from '@neurallog/client-sdk';
+
+// Create a new client
+const client = new NeuralLogClient({
+  tenantId: 'my-tenant',
+  serverUrl: 'https://api.neurallog.app',
+  authUrl: 'https://auth.neurallog.app',
+  apiKey: 'my-api-key'
+});
+
+// Initialize the client
+await client.initialize();
+
+// Log data
+const logId = await client.log('app-logs', { message: 'Hello, world!' });
+
+// Get logs
+const logs = await client.getLogs('app-logs', { limit: 10 });
+
+// Search logs
+const searchResults = await client.searchLogs('app-logs', { query: 'error', limit: 10 });
+```
+
+### Using Specialized Clients Directly
+
+You can also use the specialized clients directly:
+
+```typescript
+import { NeuralLogClientFactory } from '@neurallog/client-sdk';
+
+// Create a log client
+const logClient = NeuralLogClientFactory.createLogClient({
+  tenantId: 'my-tenant',
+  serverUrl: 'https://api.neurallog.app',
+  authUrl: 'https://auth.neurallog.app',
+  apiKey: 'my-api-key'
+});
+
+// Initialize the client
+await logClient.initialize();
+
+// Log data
+const logId = await logClient.log('app-logs', { message: 'Hello, world!' });
+```
 
 ### User Authentication
 

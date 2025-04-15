@@ -1,4 +1,9 @@
 import { LogError } from '../errors';
+import { pbkdf2 } from '@noble/hashes/pbkdf2';
+import { hkdf } from '@noble/hashes/hkdf';
+import { sha256, sha384, sha512 } from '@noble/hashes/sha2';
+import { hmac } from '@noble/hashes/hmac';
+import { utf8ToBytes } from '@noble/ciphers/utils';
 
 /**
  * Options for key derivation
@@ -8,22 +13,22 @@ export interface KeyDerivationOptions {
    * Salt for key derivation
    */
   salt?: Uint8Array | string;
-  
+
   /**
    * Info for key derivation
    */
   info?: Uint8Array | string;
-  
+
   /**
    * Hash algorithm
    */
   hash?: 'SHA-256' | 'SHA-384' | 'SHA-512';
-  
+
   /**
    * Number of iterations for PBKDF2
    */
   iterations?: number;
-  
+
   /**
    * Output key length in bits
    */
@@ -31,12 +36,31 @@ export interface KeyDerivationOptions {
 }
 
 /**
- * Utility class for key derivation
+ * Utility class for key derivation using noble-hashes
  */
 export class KeyDerivation {
   /**
+   * Get the hash function based on the hash algorithm name
+   *
+   * @param hashAlgorithm Hash algorithm name
+   * @returns Hash function
+   */
+  private static getHashFunction(hashAlgorithm: 'SHA-256' | 'SHA-384' | 'SHA-512' = 'SHA-256') {
+    switch (hashAlgorithm) {
+      case 'SHA-256':
+        return sha256;
+      case 'SHA-384':
+        return sha384;
+      case 'SHA-512':
+        return sha512;
+      default:
+        return sha256;
+    }
+  }
+
+  /**
    * Derive a key using PBKDF2
-   * 
+   *
    * @param password Password or key material
    * @param options Key derivation options
    * @returns Promise that resolves to the derived key
@@ -51,39 +75,27 @@ export class KeyDerivation {
       const hash = options.hash || 'SHA-256';
       const iterations = options.iterations || 100000;
       const keyLength = options.keyLength || 256;
-      
+
       // Convert string salt to Uint8Array
-      const saltBytes = typeof salt === 'string' 
-        ? new TextEncoder().encode(salt)
+      const saltBytes = typeof salt === 'string'
+        ? utf8ToBytes(salt)
         : salt;
-      
+
       // Convert string password to Uint8Array
       const passwordBytes = typeof password === 'string'
-        ? new TextEncoder().encode(password)
+        ? utf8ToBytes(password)
         : password;
-      
-      // Import password as key material
-      const keyMaterial = await crypto.subtle.importKey(
-        'raw',
-        passwordBytes,
-        { name: 'PBKDF2' },
-        false,
-        ['deriveBits']
-      );
-      
-      // Derive bits using PBKDF2
-      const derivedBits = await crypto.subtle.deriveBits(
-        {
-          name: 'PBKDF2',
-          salt: saltBytes,
-          iterations,
-          hash
-        },
-        keyMaterial,
-        keyLength
-      );
-      
-      return new Uint8Array(derivedBits);
+
+      // Get the hash function
+      const hashFunction = this.getHashFunction(hash);
+
+      // Derive key using PBKDF2
+      const keyBytes = pbkdf2(hashFunction, passwordBytes, saltBytes, {
+        c: iterations,
+        dkLen: keyLength / 8 // Convert bits to bytes
+      });
+
+      return keyBytes;
     } catch (error) {
       throw new LogError(
         `Failed to derive key with PBKDF2: ${error instanceof Error ? error.message : String(error)}`,
@@ -91,10 +103,10 @@ export class KeyDerivation {
       );
     }
   }
-  
+
   /**
    * Derive a key using HKDF
-   * 
+   *
    * @param keyMaterial Key material
    * @param options Key derivation options
    * @returns Promise that resolves to the derived key
@@ -109,39 +121,24 @@ export class KeyDerivation {
       const info = options.info || new Uint8Array(0);
       const hash = options.hash || 'SHA-256';
       const keyLength = options.keyLength || 256;
-      
+
       // Convert string salt to Uint8Array
-      const saltBytes = typeof salt === 'string' 
-        ? new TextEncoder().encode(salt)
+      const saltBytes = typeof salt === 'string'
+        ? utf8ToBytes(salt)
         : salt;
-      
+
       // Convert string info to Uint8Array
       const infoBytes = typeof info === 'string'
-        ? new TextEncoder().encode(info)
+        ? utf8ToBytes(info)
         : info;
-      
-      // Import key material
-      const importedKeyMaterial = await crypto.subtle.importKey(
-        'raw',
-        keyMaterial,
-        { name: 'HKDF' },
-        false,
-        ['deriveBits']
-      );
-      
-      // Derive bits using HKDF
-      const derivedBits = await crypto.subtle.deriveBits(
-        {
-          name: 'HKDF',
-          salt: saltBytes,
-          info: infoBytes,
-          hash
-        },
-        importedKeyMaterial,
-        keyLength
-      );
-      
-      return new Uint8Array(derivedBits);
+
+      // Get the hash function
+      const hashFunction = this.getHashFunction(hash);
+
+      // Derive key using HKDF
+      const keyBytes = hkdf(hashFunction, keyMaterial, saltBytes, infoBytes, keyLength / 8);
+
+      return keyBytes;
     } catch (error) {
       throw new LogError(
         `Failed to derive key with HKDF: ${error instanceof Error ? error.message : String(error)}`,
@@ -149,33 +146,25 @@ export class KeyDerivation {
       );
     }
   }
-  
+
   /**
-   * Import a key for AES-GCM
-   * 
-   * @param keyData Key data
-   * @returns Promise that resolves to the imported key
+   * Create an HMAC function with the given key and hash algorithm
+   *
+   * @param key HMAC key
+   * @param hashAlgorithm Hash algorithm
+   * @returns HMAC function
    */
-  public static async importAesGcmKey(keyData: Uint8Array): Promise<CryptoKey> {
-    try {
-      return await crypto.subtle.importKey(
-        'raw',
-        keyData,
-        { name: 'AES-GCM', length: 256 },
-        false,
-        ['encrypt', 'decrypt']
-      );
-    } catch (error) {
-      throw new LogError(
-        `Failed to import AES-GCM key: ${error instanceof Error ? error.message : String(error)}`,
-        'import_aes_gcm_key_failed'
-      );
-    }
+  public static createHmacFunction(
+    key: Uint8Array,
+    hashAlgorithm: 'SHA-256' | 'SHA-384' | 'SHA-512' = 'SHA-256'
+  ) {
+    const hashFunction = this.getHashFunction(hashAlgorithm);
+    return (data: Uint8Array) => hmac(hashFunction, key, data);
   }
-  
+
   /**
    * Import a key for HMAC
-   * 
+   *
    * @param keyData Key data
    * @param hash Hash algorithm
    * @returns Promise that resolves to the imported key

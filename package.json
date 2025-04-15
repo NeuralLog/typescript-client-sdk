@@ -1,12 +1,14 @@
 {
   "name": "@neurallog/client-sdk",
-  "version": "0.1.0",
+  "version": "0.1.7",
   "description": "Zero-knowledge client SDK for NeuralLog - AI-friendly logging system",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "lint": "eslint src --ext .ts",
     "prepublishOnly": "npm run build"
   },
@@ -22,10 +24,15 @@
   "author": "NeuralLog",
   "license": "MIT",
   "dependencies": {
+    "@noble/ciphers": "^1.2.1",
+    "@noble/hashes": "^1.7.2",
+    "@scure/base": "^1.2.4",
     "axios": "^1.6.0",
     "bip39": "^3.1.0",
     "buffer": "^6.0.3",
-    "crypto-browserify": "^3.12.0"
+    "crypto-browserify": "^3.12.0",
+    "shamir-secret-sharing": "^0.0.4",
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.0",

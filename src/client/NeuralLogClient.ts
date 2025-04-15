@@ -1,394 +1,205 @@
 import axios, { AxiosInstance } from 'axios';
-import { LogsService } from '../logs/LogsService';
+import { LogClient } from './LogClient';
+import { AuthClient } from './AuthClient';
+import { UserClient } from './UserClient';
+import { KeyManagementClient } from './KeyManagementClient';
+import { ApiKeyClient } from './ApiKeyClient';
+import { NeuralLogClientOptions, LogOptions, GetLogsOptions, SearchOptions } from './types';
+import { ConfigurationService } from './services/ConfigurationService';
+import { AuthProvider } from './services/AuthProvider';
+import { AuthManager } from '../auth/AuthManager';
 import { AuthService } from '../auth/AuthService';
+import { LogsService } from '../logs/LogsService';
+
 import { CryptoService } from '../crypto/CryptoService';
 import { KekService } from '../auth/KekService';
 import { TokenService } from '../auth/TokenService';
+import { KeyHierarchyManager } from '../managers/KeyHierarchyManager';
+import { LogManager } from '../managers/LogManager';
+import { UserManager } from '../managers/UserManager';
 import { LogError } from '../errors';
-import {
-  KeyHierarchyManager,
-  LogManager,
-  UserManager,
-  AuthManager
-} from '../managers';
-
-/**
- * Tenant endpoints returned by the registry
- */
-export interface TenantEndpoints {
-  tenantId: string;
-  authUrl: string;
-  serverUrl: string;
-  webUrl: string;
-  apiVersion: string;
-}
-
-/**
- * NeuralLog client configuration
- */
-export interface NeuralLogClientConfig {
-  /**
-   * Tenant ID
-   */
-  tenantId: string;
-
-  /**
-   * Registry URL (optional - will be constructed from tenantId if not provided)
-   */
-  registryUrl?: string;
-
-  /**
-   * API URL (optional - will be fetched from registry if not provided)
-   */
-  apiUrl?: string;
-
-  /**
-   * Auth service URL (optional - will be fetched from registry if not provided)
-   */
-  authUrl?: string;
-
-  /**
-   * Logs service URL (optional - will be fetched from registry if not provided)
-   */
-  logsUrl?: string;
-
-  /**
-   * API key (optional - for authentication)
-   */
-  apiKey?: string;
-}
+import { User, AdminPromotionRequest, KEKVersion } from '../types';
+import { Login, ApiKey } from '../types/api';
+import { LoggerService } from '../utils/LoggerService';
 
 /**
  * NeuralLog client
  *
- * This is the main entry point for interacting with the NeuralLog system.
- * It provides methods for logging, searching, and retrieving logs with
- * zero-knowledge encryption.
+ * This class is a facade that delegates to specialized clients for different domains.
  */
 export class NeuralLogClient {
-  private tenantId: string;
-  private registryUrl?: string;
-  private webUrl?: string;
-  private apiClient: AxiosInstance;
-
-  // Services
-  private authService: AuthService;
-  private logsService: LogsService;
-  private cryptoService: CryptoService;
-  private kekService: KekService;
-  private tokenService: TokenService;
-
-  // Managers
-  private keyHierarchyManager: KeyHierarchyManager;
-  private logManager: LogManager;
-  private userManager: UserManager;
-  private authManager: AuthManager;
-
-  private endpointsInitialized: boolean = false;
+  private logger = LoggerService.getInstance(process.env.NODE_ENV === 'test');
+  private configService: ConfigurationService;
+  private authClient: AuthClient;
+  private logClient: LogClient;
+  private userClient: UserClient;
+  private keyManagementClient: KeyManagementClient;
+  private apiKeyClient: ApiKeyClient;
+  private initialized: boolean = false;
 
   /**
    * Create a new NeuralLogClient
    *
-   * @param config Client configuration
+   * @param options Client options
    */
-  constructor(config: NeuralLogClientConfig) {
-    if (!config.tenantId) {
-      throw new Error('Tenant ID is required');
-    }
-
-    this.tenantId = config.tenantId;
-    this.registryUrl = config.registryUrl;
+  constructor(options: NeuralLogClientOptions) {
+    this.configService = new ConfigurationService(options);
 
     // Create API client
-    this.apiClient = axios.create({
-      baseURL: config.apiUrl || 'http://localhost:3000',
+    const apiClient = axios.create({
+      baseURL: this.configService.getServerUrl() || 'http://localhost:3000',
       timeout: 10000,
       headers: {
         'Content-Type': 'application/json'
       }
     });
 
-    // Create services with default URLs that will be updated during initialization
-    const authUrl = config.authUrl || 'http://localhost:3000';
-    const logsUrl = config.logsUrl || 'http://localhost:3030';
-
-    this.authService = new AuthService(
-      authUrl,
-      this.apiClient
+    // Create services
+    const cryptoService = new CryptoService();
+    const authService = new AuthService(
+      this.configService.getAuthUrl() || 'http://localhost:3000',
+      apiClient
     );
-
-    this.logsService = new LogsService(
-      logsUrl,
-      this.apiClient
+    const logsService = new LogsService(
+      this.configService.getServerUrl() || 'http://localhost:3030',
+      apiClient
     );
-
-    this.kekService = new KekService(
-      authUrl,
-      this.apiClient
+    const kekService = new KekService(
+      this.configService.getAuthUrl() || 'http://localhost:3000',
+      apiClient
     );
-
-    this.tokenService = new TokenService(
-      authUrl,
-      this.apiClient
+    const tokenService = new TokenService(
+      this.configService.getAuthUrl() || 'http://localhost:3000',
+      apiClient
     );
-
-    // Create crypto service
-    this.cryptoService = new CryptoService();
+    const tenantId = this.configService.getTenantId();
 
     // Create managers
-    this.keyHierarchyManager = new KeyHierarchyManager(this.cryptoService, this.kekService);
-    this.logManager = new LogManager(this.cryptoService, this.logsService, this.authService, this.tenantId);
-    this.userManager = new UserManager(this.cryptoService, this.authService);
-    this.authManager = new AuthManager(this.cryptoService, this.authService, this.tokenService, this.tenantId);
+    const keyHierarchyManager = new KeyHierarchyManager(cryptoService, kekService);
+    const authManager = new AuthManager(authService, cryptoService, keyHierarchyManager);
+    const logManager = new LogManager(cryptoService, logsService, authService, authManager, tenantId);
+    const userManager = new UserManager(cryptoService, authService, authManager);
+
+    // Create auth provider
+    const authProvider = new AuthProvider(authManager);
+
+    // Create specialized clients
+    this.authClient = new AuthClient(authManager, tokenService, this.configService, authProvider);
+    this.logClient = new LogClient(logManager, this.configService, authProvider);
+    this.userClient = new UserClient(userManager, this.configService, authProvider);
+    this.keyManagementClient = new KeyManagementClient(keyHierarchyManager, this.configService, authProvider);
+    this.apiKeyClient = new ApiKeyClient(authManager, this.configService, authProvider);
 
     // Initialize with API key if provided
-    if (config.apiKey) {
-      this.authenticateWithApiKey(config.apiKey).catch(error => {
-        console.error('Failed to authenticate with API key:', error);
+    const apiKey = this.configService.getApiKey();
+    if (apiKey) {
+      this.authenticateWithApiKey(apiKey).catch(error => {
+        this.logger.error('Failed to authenticate with API key:', error);
       });
     }
   }
 
   /**
-   * Initialize the client by fetching endpoints from the registry if needed
+   * Initialize the client
+   *
+   * @returns Promise that resolves when initialization is complete
    */
   public async initialize(): Promise<void> {
-    if (this.endpointsInitialized) {
-      return;
-    }
-
-    // If all URLs are already provided and registryUrl is not set, skip registry lookup
-    if (!this.registryUrl && this.authService.getBaseUrl() && this.logsService.getBaseUrl()) {
-      console.debug('Using provided endpoints');
-      this.endpointsInitialized = true;
-      return;
-    }
-
     try {
-      // If no registry URL is provided, construct a default one
-      if (!this.registryUrl) {
-        this.registryUrl = `https://registry.${this.tenantId}.neurallog.app`;
-        console.debug(`Using default registry URL: ${this.registryUrl}`);
-      }
+      // Initialize all clients
+      await Promise.all([
+        this.authClient.initialize(),
+        this.logClient.initialize(),
+        this.userClient.initialize(),
+        this.keyManagementClient.initialize(),
+        this.apiKeyClient.initialize()
+      ]);
 
-      // Fetch tenant endpoints from registry
-      console.debug(`Fetching endpoints from registry: ${this.registryUrl}`);
-      const response = await axios.get<TenantEndpoints>(`${this.registryUrl}/endpoints`);
-
-      if (response.status !== 200) {
-        throw new Error(`Failed to fetch tenant endpoints: ${response.statusText}`);
-      }
-
-      const endpoints = response.data;
-
-      // Update services with endpoints
-      this.authService.setBaseUrl(endpoints.authUrl);
-      this.logsService.setBaseUrl(endpoints.serverUrl);
-      this.kekService.setBaseUrl(endpoints.authUrl);
-      this.tokenService.setBaseUrl(endpoints.authUrl);
-      this.webUrl = endpoints.webUrl;
-
-      console.debug('Endpoints initialized', {
-        authUrl: endpoints.authUrl,
-        serverUrl: endpoints.serverUrl,
-        webUrl: endpoints.webUrl,
-        apiVersion: endpoints.apiVersion
-      });
-
-      this.endpointsInitialized = true;
+      this.initialized = true;
     } catch (error) {
-      console.error('Failed to initialize client', error);
-      throw new LogError(
-        `Failed to initialize client: ${error instanceof Error ? error.message : String(error)}`,
-        'initialization_failed'
-      );
+      return this.handleError(error, 'initialize client', 'initialization_failed');
     }
   }
 
   /**
-   * Authenticate with username and password
+   * Check if the client is initialized
+   *
+   * @returns True if the client is initialized
+   */
+  public isInitialized(): boolean {
+    return this.initialized;
+  }
+
+  /**
+   * Check if the client is authenticated
+   *
+   * @returns True if authenticated
+   */
+  public isAuthenticated(): boolean {
+    return this.authClient.isAuthenticated();
+  }
+
+  /**
+   * Login with username and password
    *
    * @param username Username
    * @param password Password
-   * @returns Promise that resolves to true if authentication was successful
+   * @returns Promise that resolves to true if login was successful
    */
-  public async authenticateWithPassword(username: string, password: string): Promise<boolean> {
+  public async login(username: string, password: string): Promise<boolean> {
     try {
-      // Ensure endpoints are initialized
-      await this.initialize();
-
-      // Authenticate with the auth service
-      const authResult = await this.authService.login(username, password);
-
-      if (authResult.success) {
-        // Authenticate with token
-        const authenticated = await this.authManager.authenticateWithToken(authResult.token);
-
-        if (authenticated) {
-          // Extract user ID from token
-          const userId = this.tokenService.getUserIdFromToken(authResult.token);
-
-          if (userId) {
-            this.userManager.setUserId(userId);
-          }
-
-          return true;
-        }
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
       }
 
-      return false;
+      // Login with the auth client
+      const authResponse = await this.authClient.login(username, password);
+
+      return !!authResponse.token;
     } catch (error) {
-      throw new LogError(
-        `Failed to authenticate with password: ${error instanceof Error ? error.message : String(error)}`,
-        'authentication_failed'
-      );
+      return this.handleError(error, 'login', 'login_failed');
     }
   }
 
   /**
-   * Authenticate with an API key
+   * Login with API key
    *
    * @param apiKey API key
-   * @returns Promise that resolves to true if authentication was successful
+   * @returns Promise that resolves to true if login was successful
    */
   public async authenticateWithApiKey(apiKey: string): Promise<boolean> {
     try {
-      // Ensure endpoints are initialized
-      await this.initialize();
-
-      // Authenticate with API key
-      const authenticated = await this.authManager.authenticateWithApiKey(apiKey);
-
-      if (authenticated) {
-        // Initialize the key hierarchy
-        await this.keyHierarchyManager.initializeWithApiKey(this.tenantId, apiKey);
-
-        return true;
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
       }
 
-      return false;
+      // Login with the auth client
+      const authResponse = await this.authClient.loginWithApiKey(apiKey);
+
+      return !!authResponse.token;
     } catch (error) {
-      throw new LogError(
-        `Failed to authenticate with API key: ${error instanceof Error ? error.message : String(error)}`,
-        'authentication_failed'
-      );
+      return this.handleError(error, 'authenticate with API key', 'authenticate_with_api_key_failed');
     }
   }
 
   /**
-   * Initialize with a recovery phrase
+   * Logout
    *
-   * @param recoveryPhrase Recovery phrase
-   * @param versions KEK versions to recover (if not provided, only the latest version is recovered)
-   * @returns Promise that resolves to true if initialization was successful
+   * @returns Promise that resolves when logout is complete
    */
-  public async initializeWithRecoveryPhrase(
-    recoveryPhrase: string,
-    versions?: string[]
-  ): Promise<boolean> {
+  public async logout(): Promise<void> {
     try {
-      this.checkAuthentication();
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
 
-      // Initialize the key hierarchy
-      await this.keyHierarchyManager.initializeWithRecoveryPhrase(
-        this.tenantId,
-        recoveryPhrase,
-        versions
-      );
-
-      return true;
+      // Logout with the auth client
+      await this.authClient.logout();
     } catch (error) {
-      throw new LogError(
-        `Failed to initialize with recovery phrase: ${error instanceof Error ? error.message : String(error)}`,
-        'initialize_with_recovery_phrase_failed'
-      );
-    }
-  }
-
-  /**
-   * Initialize with a mnemonic phrase
-   *
-   * @param mnemonicPhrase BIP-39 mnemonic phrase
-   * @param versions KEK versions to recover (if not provided, only the latest version is recovered)
-   * @returns Promise that resolves to true if initialization was successful
-   */
-  public async initializeWithMnemonic(
-    mnemonicPhrase: string,
-    versions?: string[]
-  ): Promise<boolean> {
-    try {
-      this.checkAuthentication();
-
-      // Initialize the key hierarchy
-      await this.keyHierarchyManager.initializeWithMnemonic(
-        this.tenantId,
-        mnemonicPhrase,
-        versions
-      );
-
-      return true;
-    } catch (error) {
-      throw new LogError(
-        `Failed to initialize with mnemonic phrase: ${error instanceof Error ? error.message : String(error)}`,
-        'initialize_with_mnemonic_failed'
-      );
-    }
-  }
-
-  /**
-   * Generate a mnemonic phrase
-   *
-   * @param strength Optional strength in bits (128 = 12 words, 256 = 24 words)
-   * @returns The generated mnemonic phrase
-   */
-  public generateMnemonic(strength: number = 128): string {
-    return this.cryptoService.getMnemonicService().generateMnemonic(strength);
-  }
-
-  /**
-   * Generate quiz questions from a mnemonic phrase
-   *
-   * @param mnemonic The mnemonic phrase
-   * @param numQuestions Number of questions to generate (default: 3)
-   * @returns Array of quiz questions with word index and word
-   */
-  public generateMnemonicQuiz(mnemonic: string, numQuestions: number = 3): Array<{ index: number; word: string }> {
-    return this.cryptoService.getMnemonicService().generateQuizQuestions(mnemonic, numQuestions);
-  }
-
-  /**
-   * Verify mnemonic quiz answers
-   *
-   * @param mnemonic The original mnemonic phrase
-   * @param answers Array of answers with index and word
-   * @returns True if all answers are correct
-   */
-  public verifyMnemonicQuiz(
-    mnemonic: string,
-    answers: Array<{ index: number; word: string }>
-  ): boolean {
-    return this.cryptoService.getMnemonicService().verifyQuizAnswers(mnemonic, answers);
-  }
-
-  /**
-   * Recover KEK versions
-   *
-   * @param versions KEK versions to recover
-   * @returns Promise that resolves to true if recovery was successful
-   */
-  public async recoverKEKVersions(versions: string[]): Promise<boolean> {
-    try {
-      this.checkAuthentication();
-
-      // Recover KEK versions
-      await this.keyHierarchyManager.recoverKEKVersions(versions);
-
-      return true;
-    } catch (error) {
-      throw new LogError(
-        `Failed to recover KEK versions: ${error instanceof Error ? error.message : String(error)}`,
-        'recover_kek_versions_failed'
-      );
+      return this.handleError(error, 'logout', 'logout_failed');
     }
   }
 
@@ -403,26 +214,18 @@ export class NeuralLogClient {
   public async log(
     logName: string,
     data: Record<string, any>,
-    options: { kekVersion?: string } = {}
+    options: LogOptions = {}
   ): Promise<string> {
-    this.checkAuthentication();
-
     try {
-      // Ensure endpoints are initialized
-      await this.initialize();
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
 
-      // Log data
-      return await this.logManager.log(
-        logName,
-        data,
-        options,
-        this.authManager.getAuthCredential()
-      );
+      // Log data with the log client
+      return await this.logClient.log(logName, data, options);
     } catch (error) {
-      throw new LogError(
-        `Failed to log data: ${error instanceof Error ? error.message : String(error)}`,
-        'log_failed'
-      );
+      return this.handleError(error, 'log data', 'log_failed');
     }
   }
 
@@ -435,25 +238,18 @@ export class NeuralLogClient {
    */
   public async getLogs(
     logName: string,
-    options: { limit?: number } = {}
+    options: GetLogsOptions = {}
   ): Promise<Record<string, any>[]> {
-    this.checkAuthentication();
-
     try {
-      // Ensure endpoints are initialized
-      await this.initialize();
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
 
-      // Get logs
-      return await this.logManager.getLogs(
-        logName,
-        options,
-        this.authManager.getAuthCredential()
-      );
+      // Get logs with the log client
+      return await this.logClient.getLogs(logName, options);
     } catch (error) {
-      throw new LogError(
-        `Failed to get logs: ${error instanceof Error ? error.message : String(error)}`,
-        'get_logs_failed'
-      );
+      return this.handleError(error, 'get logs', 'get_logs_failed');
     }
   }
 
@@ -466,77 +262,39 @@ export class NeuralLogClient {
    */
   public async searchLogs(
     logName: string,
-    options: { query: string; limit?: number }
+    options: SearchOptions
   ): Promise<Record<string, any>[]> {
-    this.checkAuthentication();
-
     try {
-      // Ensure endpoints are initialized
-      await this.initialize();
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
 
-      // Search logs
-      return await this.logManager.searchLogs(
-        logName,
-        options,
-        this.authManager.getAuthCredential()
-      );
+      // Search logs with the log client
+      return await this.logClient.searchLogs(logName, options);
     } catch (error) {
-      throw new LogError(
-        `Failed to search logs: ${error instanceof Error ? error.message : String(error)}`,
-        'search_logs_failed'
-      );
+      return this.handleError(error, 'search logs', 'search_logs_failed');
     }
   }
 
-  /**
-   * Get all logs
-   *
-   * @param options Options for getting all logs
-   * @returns Promise that resolves to the logs
-   */
-  public async getAllLogs(
-    options: { limit?: number } = {}
-  ): Promise<Record<string, any>[]> {
-    this.checkAuthentication();
 
-    try {
-      // Ensure endpoints are initialized
-      await this.initialize();
-
-      // Get all logs
-      return await this.logManager.getAllLogs(
-        options,
-        this.authManager.getAuthCredential()
-      );
-    } catch (error) {
-      throw new LogError(
-        `Failed to get all logs: ${error instanceof Error ? error.message : String(error)}`,
-        'get_all_logs_failed'
-      );
-    }
-  }
 
   /**
-   * Get all users
+   * Get users
    *
    * @returns Promise that resolves to the users
    */
-  public async getUsers(): Promise<any[]> {
-    this.checkAuthentication();
-
+  public async getUsers(): Promise<User[]> {
     try {
-      // Ensure endpoints are initialized
-      await this.initialize();
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
 
-      // Get users
-      return await this.userManager.getUsers(
-        this.authManager.getAuthCredential()
-      );
+      // Get users with the user client
+      return await this.userClient.getUsers();
     } catch (error) {
-      throw new LogError(
-        `Failed to get users: ${error instanceof Error ? error.message : String(error)}`,
-        'get_users_failed'
-      );
+      return this.handleError(error, 'get users', 'get_users_failed');
     }
   }
 
@@ -545,22 +303,17 @@ export class NeuralLogClient {
    *
    * @returns Promise that resolves to the pending admin promotions
    */
-  public async getPendingAdminPromotions(): Promise<any[]> {
-    this.checkAuthentication();
-
+  public async getPendingAdminPromotions(): Promise<AdminPromotionRequest[]> {
     try {
-      // Ensure endpoints are initialized
-      await this.initialize();
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
 
-      // Get pending admin promotions
-      return await this.userManager.getPendingAdminPromotions(
-        this.authManager.getAuthCredential()
-      );
+      // Get pending admin promotions with the user client
+      return await this.userClient.getPendingAdminPromotions();
     } catch (error) {
-      throw new LogError(
-        `Failed to get pending admin promotions: ${error instanceof Error ? error.message : String(error)}`,
-        'get_pending_admin_promotions_failed'
-      );
+      return this.handleError(error, 'get pending admin promotions', 'get_pending_admin_promotions_failed');
     }
   }
 
@@ -575,23 +328,16 @@ export class NeuralLogClient {
     promotionId: string,
     userPassword: string
   ): Promise<void> {
-    this.checkAuthentication();
-
     try {
-      // Ensure endpoints are initialized
-      await this.initialize();
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
 
-      // Approve admin promotion
-      await this.userManager.approveAdminPromotion(
-        promotionId,
-        userPassword,
-        this.authManager.getAuthCredential()
-      );
+      // Approve admin promotion with the user client
+      await this.userClient.approveAdminPromotion(promotionId, userPassword);
     } catch (error) {
-      throw new LogError(
-        `Failed to approve admin promotion: ${error instanceof Error ? error.message : String(error)}`,
-        'approve_admin_promotion_failed'
-      );
+      return this.handleError(error, 'approve admin promotion', 'approve_admin_promotion_failed');
     }
   }
 
@@ -602,53 +348,37 @@ export class NeuralLogClient {
    * @returns Promise that resolves when the promotion is rejected
    */
   public async rejectAdminPromotion(promotionId: string): Promise<void> {
-    this.checkAuthentication();
-
     try {
-      // Ensure endpoints are initialized
-      await this.initialize();
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
 
-      // Reject admin promotion
-      await this.userManager.rejectAdminPromotion(
-        promotionId,
-        this.authManager.getAuthCredential()
-      );
+      // Reject admin promotion with the user client
+      await this.userClient.rejectAdminPromotion(promotionId);
     } catch (error) {
-      throw new LogError(
-        `Failed to reject admin promotion: ${error instanceof Error ? error.message : String(error)}`,
-        'reject_admin_promotion_failed'
-      );
+      return this.handleError(error, 'reject admin promotion', 'reject_admin_promotion_failed');
     }
   }
 
   /**
-   * Create an API key
+   * Create a new API key
    *
    * @param name API key name
-   * @param permissions API key permissions
+   * @param expiresIn Expiration time in seconds
    * @returns Promise that resolves to the API key
    */
-  public async createApiKey(
-    name: string,
-    permissions: string[]
-  ): Promise<string> {
-    this.checkAuthentication();
-
+  public async createApiKey(name: string, expiresIn?: number): Promise<ApiKey> {
     try {
-      // Ensure endpoints are initialized
-      await this.initialize();
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
 
-      // Create API key
-      return await this.authManager.createApiKey(
-        name,
-        permissions,
-        this.authManager.getAuthCredential()
-      );
+      // Create API key with the API key client
+      return await this.apiKeyClient.createApiKey(name, expiresIn);
     } catch (error) {
-      throw new LogError(
-        `Failed to create API key: ${error instanceof Error ? error.message : String(error)}`,
-        'create_api_key_failed'
-      );
+      return this.handleError(error, 'create API key', 'create_api_key_failed');
     }
   }
 
@@ -657,22 +387,17 @@ export class NeuralLogClient {
    *
    * @returns Promise that resolves to the API keys
    */
-  public async getApiKeys(): Promise<any[]> {
-    this.checkAuthentication();
-
+  public async getApiKeys(): Promise<ApiKey[]> {
     try {
-      // Ensure endpoints are initialized
-      await this.initialize();
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
 
-      // Get API keys
-      return await this.authManager.getApiKeys(
-        this.authManager.getAuthCredential()
-      );
+      // Get API keys with the API key client
+      return await this.apiKeyClient.getApiKeys();
     } catch (error) {
-      throw new LogError(
-        `Failed to get API keys: ${error instanceof Error ? error.message : String(error)}`,
-        'get_api_keys_failed'
-      );
+      return this.handleError(error, 'get API keys', 'get_api_keys_failed');
     }
   }
 
@@ -683,22 +408,16 @@ export class NeuralLogClient {
    * @returns Promise that resolves when the API key is revoked
    */
   public async revokeApiKey(apiKeyId: string): Promise<void> {
-    this.checkAuthentication();
-
     try {
-      // Ensure endpoints are initialized
-      await this.initialize();
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
 
-      // Revoke API key
-      await this.authManager.revokeApiKey(
-        apiKeyId,
-        this.authManager.getAuthCredential()
-      );
+      // Revoke API key with the API key client
+      await this.apiKeyClient.revokeApiKey(apiKeyId);
     } catch (error) {
-      throw new LogError(
-        `Failed to revoke API key: ${error instanceof Error ? error.message : String(error)}`,
-        'revoke_api_key_failed'
-      );
+      return this.handleError(error, 'revoke API key', 'revoke_api_key_failed');
     }
   }
 
@@ -707,96 +426,58 @@ export class NeuralLogClient {
    *
    * @returns Promise that resolves to the KEK versions
    */
-  public async getKEKVersions(): Promise<any[]> {
-    this.checkAuthentication();
-
+  public async getKEKVersions(): Promise<KEKVersion[]> {
     try {
-      // Ensure endpoints are initialized
-      await this.initialize();
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
 
-      // Get KEK versions
-      return await this.keyHierarchyManager.getKEKVersions(
-        this.authManager.getAuthCredential()
-      );
+      // Get KEK versions with the key management client
+      return await this.keyManagementClient.getKEKVersions();
     } catch (error) {
-      throw new LogError(
-        `Failed to get KEK versions: ${error instanceof Error ? error.message : String(error)}`,
-        'get_kek_versions_failed'
-      );
+      return this.handleError(error, 'get KEK versions', 'get_kek_versions_failed');
     }
   }
 
   /**
    * Create a new KEK version
    *
-   * @param reason Reason for creating the new version
-   * @returns Promise that resolves to the new KEK version
+   * @param reason Reason for creating the KEK version
+   * @returns Promise that resolves to the created KEK version
    */
   public async createKEKVersion(reason: string): Promise<any> {
-    this.checkAuthentication();
-
     try {
-      // Ensure endpoints are initialized
-      await this.initialize();
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
 
-      // Create KEK version
-      return await this.keyHierarchyManager.createKEKVersion(
-        reason,
-        this.authManager.getAuthCredential()
-      );
+      // Create KEK version with the key management client
+      return await this.keyManagementClient.createKEKVersion(reason);
     } catch (error) {
-      throw new LogError(
-        `Failed to create KEK version: ${error instanceof Error ? error.message : String(error)}`,
-        'create_kek_version_failed'
-      );
+      return this.handleError(error, 'create KEK version', 'create_kek_version_failed');
     }
   }
 
   /**
    * Rotate KEK
    *
-   * @param reason Reason for rotation
-   * @param removedUsers Array of user IDs to remove
-   * @returns Promise that resolves to the new KEK version
+   * @param reason Reason for rotating the KEK
+   * @param removedUsers Users to remove from the KEK
+   * @returns Promise that resolves to the rotated KEK
    */
   public async rotateKEK(reason: string, removedUsers: string[] = []): Promise<any> {
-    this.checkAuthentication();
-
     try {
-      // Ensure endpoints are initialized
-      await this.initialize();
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
 
-      // Rotate KEK
-      return await this.keyHierarchyManager.rotateKEK(
-        reason,
-        removedUsers,
-        this.authManager.getAuthCredential()
-      );
+      // Rotate KEK with the key management client
+      return await this.keyManagementClient.rotateKEK(reason, removedUsers);
     } catch (error) {
-      throw new LogError(
-        `Failed to rotate KEK: ${error instanceof Error ? error.message : String(error)}`,
-        'rotate_kek_failed'
-      );
-    }
-  }
-
-  /**
-   * Get a user key pair
-   *
-   * @param userPassword User password
-   * @returns Promise that resolves to the user key pair
-   */
-  public async getUserKeyPair(userPassword: string): Promise<CryptoKeyPair> {
-    this.checkAuthentication();
-
-    try {
-      // Get user key pair
-      return await this.userManager.getUserKeyPair(userPassword);
-    } catch (error) {
-      throw new LogError(
-        `Failed to get user key pair: ${error instanceof Error ? error.message : String(error)}`,
-        'get_user_key_pair_failed'
-      );
+      return this.handleError(error, 'rotate KEK', 'rotate_kek_failed');
     }
   }
 
@@ -807,115 +488,127 @@ export class NeuralLogClient {
    * @returns Promise that resolves when the public key is uploaded
    */
   public async uploadUserPublicKey(userPassword: string): Promise<void> {
-    this.checkAuthentication();
-
     try {
-      // Ensure endpoints are initialized
-      await this.initialize();
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
 
-      // Upload user public key
-      await this.userManager.uploadUserPublicKey(
-        userPassword,
-        this.authManager.getAuthCredential()
-      );
+      // Upload user public key with the user client
+      await this.userClient.uploadUserPublicKey(userPassword);
     } catch (error) {
-      throw new LogError(
-        `Failed to upload user public key: ${error instanceof Error ? error.message : String(error)}`,
-        'upload_public_key_failed'
-      );
+      return this.handleError(error, 'upload user public key', 'upload_user_public_key_failed');
     }
   }
 
   /**
-   * Provision a KEK for a user
+   * Provision KEK for a user
    *
    * @param userId User ID
    * @param kekVersionId KEK version ID
    * @returns Promise that resolves when the KEK is provisioned
    */
   public async provisionKEKForUser(userId: string, kekVersionId: string): Promise<void> {
-    this.checkAuthentication();
-
     try {
-      // Ensure endpoints are initialized
-      await this.initialize();
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
 
-      // Provision KEK for user
-      await this.keyHierarchyManager.provisionKEKForUser(
-        userId,
-        kekVersionId,
-        this.authManager.getAuthCredential()
-      );
+      // Provision KEK for user with the key management client
+      await this.keyManagementClient.provisionKEKForUser(userId, kekVersionId);
     } catch (error) {
-      throw new LogError(
-        `Failed to provision KEK for user: ${error instanceof Error ? error.message : String(error)}`,
-        'provision_kek_failed'
-      );
+      return this.handleError(error, 'provision KEK for user', 'provision_kek_for_user_failed');
     }
   }
 
   /**
-   * Get the current user ID
+   * Check if a user has permission to perform an action on a resource
    *
-   * @returns The current user ID
+   * @param action Action to check
+   * @param resource Resource to check
+   * @returns Promise that resolves to true if the user has permission
    */
-  public getCurrentUserId(): string {
-    return this.userManager.getCurrentUserId();
-  }
+  public async checkPermission(action: string, resource: string): Promise<boolean> {
+    try {
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
 
-  /**
-   * Get the auth URL
-   *
-   * @returns The auth URL
-   */
-  public getAuthUrl(): string {
-    return this.authService.getBaseUrl();
-  }
-
-  /**
-   * Get the server URL
-   *
-   * @returns The server URL
-   */
-  public getServerUrl(): string {
-    return this.logsService.getBaseUrl();
-  }
-
-  /**
-   * Get the web URL
-   *
-   * @returns The web URL
-   */
-  public getWebUrl(): string {
-    return this.webUrl || '';
-  }
-
-  /**
-   * Get the direct logs service
-   *
-   * @returns The logs service
-   */
-  public getDirectLogsService(): LogsService {
-    return this.logsService;
-  }
-
-  /**
-   * Check if the client is authenticated
-   *
-   * @returns True if the client is authenticated
-   */
-  public isAuthenticated(): boolean {
-    return this.authManager.isAuthenticated();
-  }
-
-  /**
-   * Check if the client is authenticated
-   *
-   * @throws LogError if not authenticated
-   */
-  private checkAuthentication(): void {
-    if (!this.authManager.isAuthenticated()) {
-      throw new LogError('Not authenticated', 'not_authenticated');
+      // Check permission with the auth client
+      return await this.authClient.checkPermission(action, resource);
+    } catch (error) {
+      return this.handleError(error, 'check permission', 'check_permission_failed');
     }
+  }
+
+  /**
+   * Get the authentication token
+   *
+   * @returns Authentication token or null if not authenticated
+   */
+  public getAuthToken(): string | null {
+    return this.authClient.getAuthToken();
+  }
+
+  /**
+   * Get the log client
+   *
+   * @returns Log client
+   */
+  public getLogClient(): LogClient {
+    return this.logClient;
+  }
+
+  /**
+   * Get the auth client
+   *
+   * @returns Auth client
+   */
+  public getAuthClient(): AuthClient {
+    return this.authClient;
+  }
+
+  /**
+   * Get the user client
+   *
+   * @returns User client
+   */
+  public getUserClient(): UserClient {
+    return this.userClient;
+  }
+
+  /**
+   * Get the key management client
+   *
+   * @returns Key management client
+   */
+  public getKeyManagementClient(): KeyManagementClient {
+    return this.keyManagementClient;
+  }
+
+  /**
+   * Get the API key client
+   *
+   * @returns API key client
+   */
+  public getApiKeyClient(): ApiKeyClient {
+    return this.apiKeyClient;
+  }
+
+  /**
+   * Helper method to handle errors consistently
+   *
+   * @param error The error to handle
+   * @param operation The operation that failed
+   * @param errorCode The error code to use
+   * @throws LogError with a consistent format
+   */
+  private handleError(error: unknown, operation: string, errorCode: string): never {
+    throw new LogError(
+      `Failed to ${operation}: ${error instanceof Error ? error.message : String(error)}`,
+      errorCode
+    );
   }
 }

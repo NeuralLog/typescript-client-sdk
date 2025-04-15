@@ -102,6 +102,55 @@ export class TokenService {
   }
 
   /**
+   * Validate a token
+   *
+   * @param token Authentication token
+   * @returns Promise that resolves to true if the token is valid
+   */
+  public async validateToken(token: string): Promise<boolean> {
+    try {
+      const response = await this.apiClient.post(
+        `${this.baseUrl}/token/validate`,
+        { token }
+      );
+
+      return response.data.valid === true;
+    } catch (error) {
+      throw new LogError(
+        `Failed to validate token: ${error instanceof Error ? error.message : String(error)}`,
+        'token_validation_failed'
+      );
+    }
+  }
+
+  /**
+   * Get user ID from token
+   *
+   * @param token Authentication token
+   * @returns User ID
+   */
+  public getUserIdFromToken(token: string): string {
+    try {
+      // Decode the JWT token
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        throw new Error('Invalid token format');
+      }
+
+      // Decode the payload
+      const payload = JSON.parse(atob(parts[1]));
+
+      // Return the user ID
+      return payload.sub || payload.user_id || '';
+    } catch (error) {
+      throw new LogError(
+        `Failed to get user ID from token: ${error instanceof Error ? error.message : String(error)}`,
+        'token_validation_failed'
+      );
+    }
+  }
+
+  /**
    * Verify a resource token
    *
    * @param token Resource token
