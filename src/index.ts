@@ -31,11 +31,12 @@ export type {
   TokenValidationResult,
   TokenExchangeResult,
   ResourceTokenVerificationResult,
-  OperationResult
+  Tenant,
+  Role
 } from './types/api';
 
 // Errors
 export * from './errors';
 
 // Version
-export const VERSION = '0.1.7';
+export const VERSION = '0.1.8';

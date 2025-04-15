@@ -1,6 +1,6 @@
 {
   "name": "@neurallog/client-sdk",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Zero-knowledge client SDK for NeuralLog - AI-friendly logging system",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

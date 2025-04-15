@@ -245,13 +245,53 @@ export interface ResourceTokenVerificationResult {
 }
 
 /**
- * Operation result
+ * Tenant information
  */
-export interface OperationResult {
+export interface Tenant {
   /**
-   * Success message
+   * Tenant ID
    */
-  message: string;
+  tenantId: string;
+
+  /**
+   * Admin user ID
+   */
+  adminUserId: string;
+}
+
+/**
+ * Role information
+ */
+export interface Role {
+  /**
+   * Role ID
+   */
+  id: string;
+
+  /**
+   * Role name
+   */
+  name: string;
+
+  /**
+   * Role description
+   */
+  description?: string;
+
+  /**
+   * Role permissions
+   */
+  permissions: string[];
+
+  /**
+   * Roles this role inherits from
+   */
+  inherits?: string[];
+
+  /**
+   * Tenant ID
+   */
+  tenantId: string;
 }
 
 /**
