@@ -32,11 +32,12 @@ export type {
   TokenExchangeResult,
   ResourceTokenVerificationResult,
   Tenant,
-  Role
+  Role,
+  ApiKey
 } from './types/api';
 
 // Errors
 export * from './errors';
 
 // Version
-export const VERSION = '0.1.9';
+export const VERSION = '0.1.10';
