@@ -8,7 +8,8 @@ import {
   AdminShare,
   UserProfile,
   ApiKeyChallenge,
-  ApiKeyChallengeVerification
+  ApiKeyChallengeVerification,
+  ResourceTokenVerificationResult
 } from '../types';
 import {
   AuthenticationService,
@@ -70,6 +71,23 @@ export class AuthServiceImpl {
    */
   public async login(username: string, password: string): Promise<Login> {
     return this.authService.login(username, password);
+  }
+
+  /**
+   * Validate an API key
+   *
+   * @param apiKey API key
+   * @param proof Zero-knowledge proof for the API key
+   * @returns Promise that resolves to true if the API key is valid
+   */
+  public async validateApiKey(apiKey: string, proof?: string): Promise<boolean> {
+    try {
+      const response = await this.apiKeyService.validateApiKey(apiKey, proof);
+      return response.valid;
+    } catch (error) {
+      console.error('Error validating API key:', error);
+      return false;
+    }
   }
 
   /**
@@ -254,5 +272,15 @@ export class AuthServiceImpl {
    */
   public async getAdminShares(authToken: string): Promise<AdminShare[]> {
     return this.kekService.getAdminShares(authToken);
+  }
+
+  /**
+   * Verify a resource token
+   *
+   * @param token Resource token to verify
+   * @returns Promise that resolves to the verification result
+   */
+  public async verifyResourceToken(token: string): Promise<ResourceTokenVerificationResult> {
+    return this.authService.verifyResourceToken(token);
   }
 }

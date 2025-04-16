@@ -98,4 +98,37 @@ export class ApiKeyService extends AuthClientBase {
       throw error;
     }
   }
+
+  /**
+   * Validate an API key
+   *
+   * @param apiKey API key
+   * @param proof Zero-knowledge proof for the API key
+   * @returns Promise that resolves to the validation result
+   */
+  public async validateApiKey(apiKey: string, proof?: string): Promise<{ valid: boolean }> {
+    try {
+      // First, get a challenge
+      const challengeResponse = await this.apiKeysApi.apiKeysChallengePost({
+        apiKeysChallengePostRequest: {
+          apiKey
+        }
+      });
+
+      const challenge = challengeResponse.data.challenge;
+
+      // Then, verify the challenge response
+      const response = await this.apiKeysApi.apiKeysVerifyChallengePost({
+        apiKeysVerifyChallengePostRequest: {
+          apiKey,
+          challenge,
+          response: `${apiKey.split('.')[0]}.${proof || ''}`
+        }
+      });
+
+      return { valid: response.data.valid === true };
+    } catch (error) {
+      return { valid: false };
+    }
+  }
 }

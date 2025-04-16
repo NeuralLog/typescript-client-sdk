@@ -407,6 +407,62 @@ export interface ApiKeysVerifyChallengePostRequest {
 /**
  * 
  * @export
+ * @interface AuthCheckPostRequest
+ */
+export interface AuthCheckPostRequest {
+    /**
+     * User identifier
+     * @type {string}
+     * @memberof AuthCheckPostRequest
+     */
+    'user': string;
+    /**
+     * Relation (e.g., \'read\', \'write\')
+     * @type {string}
+     * @memberof AuthCheckPostRequest
+     */
+    'relation': string;
+    /**
+     * Object identifier
+     * @type {string}
+     * @memberof AuthCheckPostRequest
+     */
+    'object': string;
+    /**
+     * Contextual tuples for the check
+     * @type {Array<AuthCheckPostRequestContextualTuplesInner>}
+     * @memberof AuthCheckPostRequest
+     */
+    'contextualTuples'?: Array<AuthCheckPostRequestContextualTuplesInner>;
+}
+/**
+ * 
+ * @export
+ * @interface AuthCheckPostRequestContextualTuplesInner
+ */
+export interface AuthCheckPostRequestContextualTuplesInner {
+    /**
+     * User identifier
+     * @type {string}
+     * @memberof AuthCheckPostRequestContextualTuplesInner
+     */
+    'user': string;
+    /**
+     * Relation
+     * @type {string}
+     * @memberof AuthCheckPostRequestContextualTuplesInner
+     */
+    'relation': string;
+    /**
+     * Object identifier
+     * @type {string}
+     * @memberof AuthCheckPostRequestContextualTuplesInner
+     */
+    'object': string;
+}
+/**
+ * 
+ * @export
  * @interface AuthExchangeTokenPostRequest
  */
 export interface AuthExchangeTokenPostRequest {
@@ -1626,6 +1682,46 @@ export class APIKeysApi extends BaseAPI implements APIKeysApiInterface {
 export const AuthApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
+         * Check if a user has permission to access a resource
+         * @summary Check permission
+         * @param {AuthCheckPostRequest} authCheckPostRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        authCheckPost: async (authCheckPostRequest: AuthCheckPostRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'authCheckPostRequest' is not null or undefined
+            assertParamExists('authCheckPost', 'authCheckPostRequest', authCheckPostRequest)
+            const localVarPath = `/auth/check`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(authCheckPostRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Exchange an authentication token for a resource-specific token
          * @summary Exchange token for resource token
          * @param {AuthExchangeTokenPostRequest} authExchangeTokenPostRequest 
@@ -1824,6 +1920,19 @@ export const AuthApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = AuthApiAxiosParamCreator(configuration)
     return {
         /**
+         * Check if a user has permission to access a resource
+         * @summary Check permission
+         * @param {AuthCheckPostRequest} authCheckPostRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async authCheckPost(authCheckPostRequest: AuthCheckPostRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PermissionCheck>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.authCheckPost(authCheckPostRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AuthApi.authCheckPost']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Exchange an authentication token for a resource-specific token
          * @summary Exchange token for resource token
          * @param {AuthExchangeTokenPostRequest} authExchangeTokenPostRequest 
@@ -1897,6 +2006,16 @@ export const AuthApiFactory = function (configuration?: Configuration, basePath?
     const localVarFp = AuthApiFp(configuration)
     return {
         /**
+         * Check if a user has permission to access a resource
+         * @summary Check permission
+         * @param {AuthApiAuthCheckPostRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        authCheckPost(requestParameters: AuthApiAuthCheckPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<PermissionCheck> {
+            return localVarFp.authCheckPost(requestParameters.authCheckPostRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Exchange an authentication token for a resource-specific token
          * @summary Exchange token for resource token
          * @param {AuthApiAuthExchangeTokenPostRequest} requestParameters Request parameters.
@@ -1954,6 +2073,16 @@ export const AuthApiFactory = function (configuration?: Configuration, basePath?
  */
 export interface AuthApiInterface {
     /**
+     * Check if a user has permission to access a resource
+     * @summary Check permission
+     * @param {AuthApiAuthCheckPostRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof AuthApiInterface
+     */
+    authCheckPost(requestParameters: AuthApiAuthCheckPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<PermissionCheck>;
+
+    /**
      * Exchange an authentication token for a resource-specific token
      * @summary Exchange token for resource token
      * @param {AuthApiAuthExchangeTokenPostRequest} requestParameters Request parameters.
@@ -2001,6 +2130,20 @@ export interface AuthApiInterface {
      */
     authVerifyResourceTokenPost(requestParameters: AuthApiAuthVerifyResourceTokenPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<ResourceTokenVerificationResult>;
 
+}
+
+/**
+ * Request parameters for authCheckPost operation in AuthApi.
+ * @export
+ * @interface AuthApiAuthCheckPostRequest
+ */
+export interface AuthApiAuthCheckPostRequest {
+    /**
+     * 
+     * @type {AuthCheckPostRequest}
+     * @memberof AuthApiAuthCheckPost
+     */
+    readonly authCheckPostRequest: AuthCheckPostRequest
 }
 
 /**
@@ -2052,6 +2195,18 @@ export interface AuthApiAuthVerifyResourceTokenPostRequest {
  * @extends {BaseAPI}
  */
 export class AuthApi extends BaseAPI implements AuthApiInterface {
+    /**
+     * Check if a user has permission to access a resource
+     * @summary Check permission
+     * @param {AuthApiAuthCheckPostRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof AuthApi
+     */
+    public authCheckPost(requestParameters: AuthApiAuthCheckPostRequest, options?: RawAxiosRequestConfig) {
+        return AuthApiFp(this.configuration).authCheckPost(requestParameters.authCheckPostRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
     /**
      * Exchange an authentication token for a resource-specific token
      * @summary Exchange token for resource token

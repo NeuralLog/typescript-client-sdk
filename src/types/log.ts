@@ -1,6 +1,6 @@
 /**
  * Log Server API Types
- * 
+ *
  * THIS FILE IS AUTO-GENERATED - DO NOT EDIT DIRECTLY
  * Generated from OpenAPI schema
  */
@@ -107,22 +107,25 @@ export interface LogSearchOptions {
 }
 
 export interface PaginatedLogEntries {
-  entries?: LogEntry[];
-  /**
-   * Total number of entries
-   */
-  total?: number;
-  /**
-   * Maximum number of entries returned
-   */
-  limit?: number;
-  /**
-   * Offset for pagination
-   */
-  offset?: number;
-  /**
-   * Whether there are more entries
-   */
+  /** Result items */
+  items?: LogEntry[];
+
+  /** Result entries (alias for items for backward compatibility) */
+  entries: LogEntry[];
+
+  /** Total count */
+  total: number;
+
+  /** Total count (alias for total for backward compatibility) */
+  totalCount: number;
+
+  /** Result limit */
+  limit: number;
+
+  /** Result offset */
+  offset: number;
+
+  /** Whether there are more results */
   hasMore?: boolean;
 }
 
@@ -169,29 +172,7 @@ export type DeleteLogData = any;
 export type GetLogEntriesData = PaginatedLogEntries;
 export type SearchLogEntriesData = PaginatedLogEntries;
 
-// Redefine PaginatedLogEntries to match PaginatedResult<LogEntry>
-export interface PaginatedLogEntries {
-  /** Result items */
-  items?: LogEntry[];
-
-  /** Result entries (alias for items for backward compatibility) */
-  entries: LogEntry[];
-
-  /** Total count */
-  total: number;
-
-  /** Total count (alias for total for backward compatibility) */
-  totalCount: number;
-
-  /** Result limit */
-  limit: number;
-
-  /** Result offset */
-  offset: number;
-
-  /** Whether there are more results */
-  hasMore?: boolean;
-}
+// PaginatedLogEntries is defined above
 
 export interface GetLogEntriesParams {
   /**

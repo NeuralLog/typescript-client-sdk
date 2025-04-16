@@ -8,7 +8,8 @@ import {
   AdminShare,
   UserProfile,
   ApiKeyChallenge,
-  ApiKeyChallengeVerification
+  ApiKeyChallengeVerification,
+  ResourceTokenVerificationResult
 } from '../types';
 import { AuthServiceImpl } from './AuthServiceImpl';
 
@@ -93,10 +94,8 @@ export class AuthService {
    * @param proof Zero-knowledge proof for the API key
    * @returns Promise that resolves to true if the API key is valid
    */
-  public async validateApiKey(_apiKey: string, _proof?: string): Promise<boolean> {
-    // This method is not implemented in the OpenAPI spec yet
-    // We'll implement it when it's added to the OpenAPI spec
-    throw new Error('Method not implemented in the OpenAPI client yet');
+  public async validateApiKey(apiKey: string, proof?: string): Promise<boolean> {
+    return this.serviceImpl.validateApiKey(apiKey, proof);
   }
 
   /**
@@ -251,5 +250,15 @@ export class AuthService {
    */
   public async getAdminShares(authToken: string): Promise<AdminShare[]> {
     return this.serviceImpl.getAdminShares(authToken);
+  }
+
+  /**
+   * Verify a resource token
+   *
+   * @param token Resource token to verify
+   * @returns Promise that resolves to the verification result
+   */
+  public async verifyResourceToken(token: string): Promise<ResourceTokenVerificationResult> {
+    return this.serviceImpl.verifyResourceToken(token);
   }
 }

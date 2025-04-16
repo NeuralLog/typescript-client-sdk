@@ -1,4 +1,4 @@
-import { Login, ApiKeyChallenge, ApiKeyChallengeVerification, UserProfile } from '../../generated/auth-service';
+import { Login, ApiKeyChallenge, ApiKeyChallengeVerification, UserProfile, ResourceTokenVerificationResult } from '../../generated/auth-service';
 import { AuthClientBase } from './AuthClientBase';
 import { LogError } from '../../errors';
 
@@ -174,17 +174,80 @@ export class AuthenticationService extends AuthClientBase {
    * @param authToken Authentication token
    * @param action Action to check
    * @param resource Resource to check
+   * @param contextualTuples Optional contextual tuples for the check
    * @returns Promise that resolves to true if the user has permission, false otherwise
    */
-  public async checkPermission(authToken: string, action: string, resource: string): Promise<boolean> {
+  public async checkPermission(
+    authToken: string,
+    action: string,
+    resource: string,
+    contextualTuples?: Array<{ user: string; relation: string; object: string }>
+  ): Promise<boolean> {
     try {
-      // Note: This endpoint is not in the OpenAPI spec yet
-      throw new LogError(
-        'Check permission is not implemented in the OpenAPI client yet',
-        'not_implemented'
+      // Extract the user ID from the auth token
+      const tokenParts = authToken.split('.');
+      if (tokenParts.length !== 3) {
+        throw new LogError('Invalid auth token format', 'invalid_token');
+      }
+
+      // Decode the payload to get the user ID
+      const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
+      const userId = payload.sub || payload.user_id;
+
+      if (!userId) {
+        throw new LogError('User ID not found in token', 'invalid_token');
+      }
+
+      // Call the auth check endpoint
+      const response = await this.authApi.authCheckPost(
+        {
+          authCheckPostRequest: {
+            user: userId,
+            relation: action,
+            object: resource,
+            contextualTuples
+          }
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`
+          }
+        }
       );
+
+      return response.data.allowed === true;
     } catch (error) {
-      throw error;
+      if (error instanceof LogError) {
+        throw error;
+      }
+      throw new LogError(
+        `Failed to check permission: ${error instanceof Error ? error.message : String(error)}`,
+        'check_permission_failed'
+      );
+    }
+  }
+
+  /**
+   * Verify a resource token
+   *
+   * @param token Resource token to verify
+   * @returns Promise that resolves to the verification result
+   */
+  public async verifyResourceToken(token: string): Promise<ResourceTokenVerificationResult> {
+    try {
+      const response = await this.authApi.authVerifyResourceTokenPost({
+        authVerifyResourceTokenPostRequest: {
+          token,
+          resource: '' // Resource is not needed for verification in this context
+        }
+      });
+
+      return response.data;
+    } catch (error) {
+      throw new LogError(
+        `Failed to verify resource token: ${error instanceof Error ? error.message : String(error)}`,
+        'verify_resource_token_failed'
+      );
     }
   }
 }
