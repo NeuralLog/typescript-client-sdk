@@ -539,6 +539,44 @@ export interface AuthVerifyResourceTokenPostRequest {
 /**
  * 
  * @export
+ * @interface CompleteKEKRecoveryRequest
+ */
+export interface CompleteKEKRecoveryRequest {
+    /**
+     * The recovered KEK (encrypted with the user\'s public key)
+     * @type {string}
+     * @memberof CompleteKEKRecoveryRequest
+     */
+    'recoveredKEK': string;
+    /**
+     * 
+     * @type {CompleteKEKRecoveryRequestNewKEKVersion}
+     * @memberof CompleteKEKRecoveryRequest
+     */
+    'newKEKVersion': CompleteKEKRecoveryRequestNewKEKVersion;
+}
+/**
+ * Information about the new KEK version
+ * @export
+ * @interface CompleteKEKRecoveryRequestNewKEKVersion
+ */
+export interface CompleteKEKRecoveryRequestNewKEKVersion {
+    /**
+     * New KEK version ID
+     * @type {string}
+     * @memberof CompleteKEKRecoveryRequestNewKEKVersion
+     */
+    'id': string;
+    /**
+     * Reason for the new KEK version
+     * @type {string}
+     * @memberof CompleteKEKRecoveryRequestNewKEKVersion
+     */
+    'reason': string;
+}
+/**
+ * 
+ * @export
  * @interface CreateApiKeyRequest
  */
 export interface CreateApiKeyRequest {
@@ -597,6 +635,37 @@ export interface EncryptedKEK {
      * @memberof EncryptedKEK
      */
     'version'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface InitiateKEKRecoveryRequest
+ */
+export interface InitiateKEKRecoveryRequest {
+    /**
+     * KEK version ID to recover
+     * @type {string}
+     * @memberof InitiateKEKRecoveryRequest
+     */
+    'versionId': string;
+    /**
+     * Number of shares required for recovery
+     * @type {number}
+     * @memberof InitiateKEKRecoveryRequest
+     */
+    'threshold': number;
+    /**
+     * Reason for recovery
+     * @type {string}
+     * @memberof InitiateKEKRecoveryRequest
+     */
+    'reason': string;
+    /**
+     * Expiration time in seconds
+     * @type {number}
+     * @memberof InitiateKEKRecoveryRequest
+     */
+    'expiresIn'?: number;
 }
 /**
  * 
@@ -722,6 +791,146 @@ export interface KEKVersions {
 /**
  * 
  * @export
+ * @interface KekRecoveryResult
+ */
+export interface KekRecoveryResult {
+    /**
+     * Recovery session ID
+     * @type {string}
+     * @memberof KekRecoveryResult
+     */
+    'sessionId': string;
+    /**
+     * Original KEK version ID
+     * @type {string}
+     * @memberof KekRecoveryResult
+     */
+    'versionId': string;
+    /**
+     * New KEK version ID
+     * @type {string}
+     * @memberof KekRecoveryResult
+     */
+    'newVersionId': string;
+    /**
+     * Status of the recovery
+     * @type {string}
+     * @memberof KekRecoveryResult
+     */
+    'status': KekRecoveryResultStatusEnum;
+    /**
+     * Completion timestamp
+     * @type {string}
+     * @memberof KekRecoveryResult
+     */
+    'completedAt': string;
+}
+
+export const KekRecoveryResultStatusEnum = {
+    Completed: 'completed'
+} as const;
+
+export type KekRecoveryResultStatusEnum = typeof KekRecoveryResultStatusEnum[keyof typeof KekRecoveryResultStatusEnum];
+
+/**
+ * 
+ * @export
+ * @interface KekRecoverySession
+ */
+export interface KekRecoverySession {
+    /**
+     * Recovery session ID
+     * @type {string}
+     * @memberof KekRecoverySession
+     */
+    'id': string;
+    /**
+     * KEK version ID
+     * @type {string}
+     * @memberof KekRecoverySession
+     */
+    'versionId': string;
+    /**
+     * User ID of the initiator
+     * @type {string}
+     * @memberof KekRecoverySession
+     */
+    'initiatedBy': string;
+    /**
+     * Tenant ID
+     * @type {string}
+     * @memberof KekRecoverySession
+     */
+    'tenantId': string;
+    /**
+     * Number of shares required for recovery
+     * @type {number}
+     * @memberof KekRecoverySession
+     */
+    'threshold': number;
+    /**
+     * Reason for recovery
+     * @type {string}
+     * @memberof KekRecoverySession
+     */
+    'reason': string;
+    /**
+     * Status of the recovery session
+     * @type {string}
+     * @memberof KekRecoverySession
+     */
+    'status': KekRecoverySessionStatusEnum;
+    /**
+     * Submitted shares
+     * @type {Array<KekRecoverySessionSharesInner>}
+     * @memberof KekRecoverySession
+     */
+    'shares': Array<KekRecoverySessionSharesInner>;
+    /**
+     * Creation timestamp
+     * @type {string}
+     * @memberof KekRecoverySession
+     */
+    'createdAt': string;
+    /**
+     * Expiration timestamp
+     * @type {string}
+     * @memberof KekRecoverySession
+     */
+    'expiresAt': string;
+}
+
+export const KekRecoverySessionStatusEnum = {
+    Pending: 'pending',
+    Completed: 'completed',
+    Expired: 'expired',
+    Cancelled: 'cancelled'
+} as const;
+
+export type KekRecoverySessionStatusEnum = typeof KekRecoverySessionStatusEnum[keyof typeof KekRecoverySessionStatusEnum];
+
+/**
+ * 
+ * @export
+ * @interface KekRecoverySessionSharesInner
+ */
+export interface KekRecoverySessionSharesInner {
+    /**
+     * User ID who submitted the share
+     * @type {string}
+     * @memberof KekRecoverySessionSharesInner
+     */
+    'userId'?: string;
+    /**
+     * Timestamp when the share was submitted
+     * @type {string}
+     * @memberof KekRecoverySessionSharesInner
+     */
+    'submittedAt'?: string;
+}
+/**
+ * 
+ * @export
  * @interface KeysList
  */
 export interface KeysList {
@@ -783,19 +992,25 @@ export interface PermissionCheck {
  */
 export interface PublicKey {
     /**
+     * Public key ID
+     * @type {string}
+     * @memberof PublicKey
+     */
+    'id': string;
+    /**
      * User ID
      * @type {string}
      * @memberof PublicKey
      */
     'userId': string;
     /**
-     * Public key data
+     * Public key data (Base64-encoded)
      * @type {string}
      * @memberof PublicKey
      */
     'publicKey': string;
     /**
-     * Purpose of the public key (e.g., \'admin-promotion\')
+     * Purpose of the public key
      * @type {string}
      * @memberof PublicKey
      */
@@ -806,6 +1021,12 @@ export interface PublicKey {
      * @memberof PublicKey
      */
     'tenantId': string;
+    /**
+     * Additional metadata
+     * @type {object}
+     * @memberof PublicKey
+     */
+    'metadata'?: object;
     /**
      * Creation timestamp
      * @type {string}
@@ -818,6 +1039,31 @@ export interface PublicKey {
      * @memberof PublicKey
      */
     'updatedAt': string;
+}
+/**
+ * 
+ * @export
+ * @interface RegisterPublicKeyRequest
+ */
+export interface RegisterPublicKeyRequest {
+    /**
+     * Public key data (Base64-encoded)
+     * @type {string}
+     * @memberof RegisterPublicKeyRequest
+     */
+    'publicKey': string;
+    /**
+     * Purpose of the public key (e.g., \'admin-promotion\')
+     * @type {string}
+     * @memberof RegisterPublicKeyRequest
+     */
+    'purpose': string;
+    /**
+     * Additional metadata
+     * @type {object}
+     * @memberof RegisterPublicKeyRequest
+     */
+    'metadata'?: object;
 }
 /**
  * 
@@ -915,6 +1161,25 @@ export interface SerializedSecretShare {
 /**
  * 
  * @export
+ * @interface SubmitRecoveryShareRequest
+ */
+export interface SubmitRecoveryShareRequest {
+    /**
+     * 
+     * @type {SerializedSecretShare}
+     * @memberof SubmitRecoveryShareRequest
+     */
+    'share': SerializedSecretShare;
+    /**
+     * User ID for whom the share is encrypted
+     * @type {string}
+     * @memberof SubmitRecoveryShareRequest
+     */
+    'encryptedFor': string;
+}
+/**
+ * 
+ * @export
  * @interface Tenant
  */
 export interface Tenant {
@@ -962,6 +1227,25 @@ export interface TokenValidationResult {
      * @memberof TokenValidationResult
      */
     'user'?: UserProfile;
+}
+/**
+ * 
+ * @export
+ * @interface UpdatePublicKeyRequest
+ */
+export interface UpdatePublicKeyRequest {
+    /**
+     * Public key data (Base64-encoded)
+     * @type {string}
+     * @memberof UpdatePublicKeyRequest
+     */
+    'publicKey': string;
+    /**
+     * Additional metadata
+     * @type {object}
+     * @memberof UpdatePublicKeyRequest
+     */
+    'metadata'?: object;
 }
 /**
  * 
@@ -1060,6 +1344,56 @@ export interface UserProfile {
      * @memberof UserProfile
      */
     'roles'?: Array<string>;
+}
+/**
+ * 
+ * @export
+ * @interface VerifyPublicKeyRequest
+ */
+export interface VerifyPublicKeyRequest {
+    /**
+     * Public key ID
+     * @type {string}
+     * @memberof VerifyPublicKeyRequest
+     */
+    'keyId': string;
+    /**
+     * Challenge to sign
+     * @type {string}
+     * @memberof VerifyPublicKeyRequest
+     */
+    'challenge': string;
+    /**
+     * Signature of the challenge
+     * @type {string}
+     * @memberof VerifyPublicKeyRequest
+     */
+    'signature': string;
+}
+/**
+ * 
+ * @export
+ * @interface VerifyPublicKeyResponse
+ */
+export interface VerifyPublicKeyResponse {
+    /**
+     * Whether the public key was verified
+     * @type {boolean}
+     * @memberof VerifyPublicKeyResponse
+     */
+    'verified': boolean;
+    /**
+     * User ID
+     * @type {string}
+     * @memberof VerifyPublicKeyResponse
+     */
+    'userId': string;
+    /**
+     * Public key ID
+     * @type {string}
+     * @memberof VerifyPublicKeyResponse
+     */
+    'keyId': string;
 }
 
 /**
@@ -2263,6 +2597,1034 @@ export class AuthApi extends BaseAPI implements AuthApiInterface {
      */
     public authVerifyResourceTokenPost(requestParameters: AuthApiAuthVerifyResourceTokenPostRequest, options?: RawAxiosRequestConfig) {
         return AuthApiFp(this.configuration).authVerifyResourceTokenPost(requestParameters.authVerifyResourceTokenPostRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+
+/**
+ * KEKApi - axios parameter creator
+ * @export
+ */
+export const KEKApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Initiate the recovery of a KEK version
+         * @summary Initiate KEK version recovery
+         * @param {InitiateKEKRecoveryRequest} initiateKEKRecoveryRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        kekRecoveryPost: async (initiateKEKRecoveryRequest: InitiateKEKRecoveryRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'initiateKEKRecoveryRequest' is not null or undefined
+            assertParamExists('kekRecoveryPost', 'initiateKEKRecoveryRequest', initiateKEKRecoveryRequest)
+            const localVarPath = `/kek/recovery`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(initiateKEKRecoveryRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Complete the KEK recovery process
+         * @summary Complete KEK recovery
+         * @param {string} sessionId Recovery session ID
+         * @param {CompleteKEKRecoveryRequest} completeKEKRecoveryRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        kekRecoverySessionIdCompletePost: async (sessionId: string, completeKEKRecoveryRequest: CompleteKEKRecoveryRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'sessionId' is not null or undefined
+            assertParamExists('kekRecoverySessionIdCompletePost', 'sessionId', sessionId)
+            // verify required parameter 'completeKEKRecoveryRequest' is not null or undefined
+            assertParamExists('kekRecoverySessionIdCompletePost', 'completeKEKRecoveryRequest', completeKEKRecoveryRequest)
+            const localVarPath = `/kek/recovery/{sessionId}/complete`
+                .replace(`{${"sessionId"}}`, encodeURIComponent(String(sessionId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(completeKEKRecoveryRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get information about a KEK recovery session
+         * @summary Get KEK recovery session
+         * @param {string} sessionId Recovery session ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        kekRecoverySessionIdGet: async (sessionId: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'sessionId' is not null or undefined
+            assertParamExists('kekRecoverySessionIdGet', 'sessionId', sessionId)
+            const localVarPath = `/kek/recovery/{sessionId}`
+                .replace(`{${"sessionId"}}`, encodeURIComponent(String(sessionId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Submit a share for KEK recovery
+         * @summary Submit a recovery share
+         * @param {string} sessionId Recovery session ID
+         * @param {SubmitRecoveryShareRequest} submitRecoveryShareRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        kekRecoverySessionIdSharesPost: async (sessionId: string, submitRecoveryShareRequest: SubmitRecoveryShareRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'sessionId' is not null or undefined
+            assertParamExists('kekRecoverySessionIdSharesPost', 'sessionId', sessionId)
+            // verify required parameter 'submitRecoveryShareRequest' is not null or undefined
+            assertParamExists('kekRecoverySessionIdSharesPost', 'submitRecoveryShareRequest', submitRecoveryShareRequest)
+            const localVarPath = `/kek/recovery/{sessionId}/shares`
+                .replace(`{${"sessionId"}}`, encodeURIComponent(String(sessionId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(submitRecoveryShareRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * KEKApi - functional programming interface
+ * @export
+ */
+export const KEKApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = KEKApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Initiate the recovery of a KEK version
+         * @summary Initiate KEK version recovery
+         * @param {InitiateKEKRecoveryRequest} initiateKEKRecoveryRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async kekRecoveryPost(initiateKEKRecoveryRequest: InitiateKEKRecoveryRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<KekRecoverySession>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.kekRecoveryPost(initiateKEKRecoveryRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['KEKApi.kekRecoveryPost']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Complete the KEK recovery process
+         * @summary Complete KEK recovery
+         * @param {string} sessionId Recovery session ID
+         * @param {CompleteKEKRecoveryRequest} completeKEKRecoveryRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async kekRecoverySessionIdCompletePost(sessionId: string, completeKEKRecoveryRequest: CompleteKEKRecoveryRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<KekRecoveryResult>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.kekRecoverySessionIdCompletePost(sessionId, completeKEKRecoveryRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['KEKApi.kekRecoverySessionIdCompletePost']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Get information about a KEK recovery session
+         * @summary Get KEK recovery session
+         * @param {string} sessionId Recovery session ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async kekRecoverySessionIdGet(sessionId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<KekRecoverySession>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.kekRecoverySessionIdGet(sessionId, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['KEKApi.kekRecoverySessionIdGet']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Submit a share for KEK recovery
+         * @summary Submit a recovery share
+         * @param {string} sessionId Recovery session ID
+         * @param {SubmitRecoveryShareRequest} submitRecoveryShareRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async kekRecoverySessionIdSharesPost(sessionId: string, submitRecoveryShareRequest: SubmitRecoveryShareRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<KekRecoverySession>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.kekRecoverySessionIdSharesPost(sessionId, submitRecoveryShareRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['KEKApi.kekRecoverySessionIdSharesPost']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+    }
+};
+
+/**
+ * KEKApi - factory interface
+ * @export
+ */
+export const KEKApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = KEKApiFp(configuration)
+    return {
+        /**
+         * Initiate the recovery of a KEK version
+         * @summary Initiate KEK version recovery
+         * @param {KEKApiKekRecoveryPostRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        kekRecoveryPost(requestParameters: KEKApiKekRecoveryPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<KekRecoverySession> {
+            return localVarFp.kekRecoveryPost(requestParameters.initiateKEKRecoveryRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Complete the KEK recovery process
+         * @summary Complete KEK recovery
+         * @param {KEKApiKekRecoverySessionIdCompletePostRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        kekRecoverySessionIdCompletePost(requestParameters: KEKApiKekRecoverySessionIdCompletePostRequest, options?: RawAxiosRequestConfig): AxiosPromise<KekRecoveryResult> {
+            return localVarFp.kekRecoverySessionIdCompletePost(requestParameters.sessionId, requestParameters.completeKEKRecoveryRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get information about a KEK recovery session
+         * @summary Get KEK recovery session
+         * @param {KEKApiKekRecoverySessionIdGetRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        kekRecoverySessionIdGet(requestParameters: KEKApiKekRecoverySessionIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<KekRecoverySession> {
+            return localVarFp.kekRecoverySessionIdGet(requestParameters.sessionId, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Submit a share for KEK recovery
+         * @summary Submit a recovery share
+         * @param {KEKApiKekRecoverySessionIdSharesPostRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        kekRecoverySessionIdSharesPost(requestParameters: KEKApiKekRecoverySessionIdSharesPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<KekRecoverySession> {
+            return localVarFp.kekRecoverySessionIdSharesPost(requestParameters.sessionId, requestParameters.submitRecoveryShareRequest, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * KEKApi - interface
+ * @export
+ * @interface KEKApi
+ */
+export interface KEKApiInterface {
+    /**
+     * Initiate the recovery of a KEK version
+     * @summary Initiate KEK version recovery
+     * @param {KEKApiKekRecoveryPostRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof KEKApiInterface
+     */
+    kekRecoveryPost(requestParameters: KEKApiKekRecoveryPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<KekRecoverySession>;
+
+    /**
+     * Complete the KEK recovery process
+     * @summary Complete KEK recovery
+     * @param {KEKApiKekRecoverySessionIdCompletePostRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof KEKApiInterface
+     */
+    kekRecoverySessionIdCompletePost(requestParameters: KEKApiKekRecoverySessionIdCompletePostRequest, options?: RawAxiosRequestConfig): AxiosPromise<KekRecoveryResult>;
+
+    /**
+     * Get information about a KEK recovery session
+     * @summary Get KEK recovery session
+     * @param {KEKApiKekRecoverySessionIdGetRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof KEKApiInterface
+     */
+    kekRecoverySessionIdGet(requestParameters: KEKApiKekRecoverySessionIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<KekRecoverySession>;
+
+    /**
+     * Submit a share for KEK recovery
+     * @summary Submit a recovery share
+     * @param {KEKApiKekRecoverySessionIdSharesPostRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof KEKApiInterface
+     */
+    kekRecoverySessionIdSharesPost(requestParameters: KEKApiKekRecoverySessionIdSharesPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<KekRecoverySession>;
+
+}
+
+/**
+ * Request parameters for kekRecoveryPost operation in KEKApi.
+ * @export
+ * @interface KEKApiKekRecoveryPostRequest
+ */
+export interface KEKApiKekRecoveryPostRequest {
+    /**
+     * 
+     * @type {InitiateKEKRecoveryRequest}
+     * @memberof KEKApiKekRecoveryPost
+     */
+    readonly initiateKEKRecoveryRequest: InitiateKEKRecoveryRequest
+}
+
+/**
+ * Request parameters for kekRecoverySessionIdCompletePost operation in KEKApi.
+ * @export
+ * @interface KEKApiKekRecoverySessionIdCompletePostRequest
+ */
+export interface KEKApiKekRecoverySessionIdCompletePostRequest {
+    /**
+     * Recovery session ID
+     * @type {string}
+     * @memberof KEKApiKekRecoverySessionIdCompletePost
+     */
+    readonly sessionId: string
+
+    /**
+     * 
+     * @type {CompleteKEKRecoveryRequest}
+     * @memberof KEKApiKekRecoverySessionIdCompletePost
+     */
+    readonly completeKEKRecoveryRequest: CompleteKEKRecoveryRequest
+}
+
+/**
+ * Request parameters for kekRecoverySessionIdGet operation in KEKApi.
+ * @export
+ * @interface KEKApiKekRecoverySessionIdGetRequest
+ */
+export interface KEKApiKekRecoverySessionIdGetRequest {
+    /**
+     * Recovery session ID
+     * @type {string}
+     * @memberof KEKApiKekRecoverySessionIdGet
+     */
+    readonly sessionId: string
+}
+
+/**
+ * Request parameters for kekRecoverySessionIdSharesPost operation in KEKApi.
+ * @export
+ * @interface KEKApiKekRecoverySessionIdSharesPostRequest
+ */
+export interface KEKApiKekRecoverySessionIdSharesPostRequest {
+    /**
+     * Recovery session ID
+     * @type {string}
+     * @memberof KEKApiKekRecoverySessionIdSharesPost
+     */
+    readonly sessionId: string
+
+    /**
+     * 
+     * @type {SubmitRecoveryShareRequest}
+     * @memberof KEKApiKekRecoverySessionIdSharesPost
+     */
+    readonly submitRecoveryShareRequest: SubmitRecoveryShareRequest
+}
+
+/**
+ * KEKApi - object-oriented interface
+ * @export
+ * @class KEKApi
+ * @extends {BaseAPI}
+ */
+export class KEKApi extends BaseAPI implements KEKApiInterface {
+    /**
+     * Initiate the recovery of a KEK version
+     * @summary Initiate KEK version recovery
+     * @param {KEKApiKekRecoveryPostRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof KEKApi
+     */
+    public kekRecoveryPost(requestParameters: KEKApiKekRecoveryPostRequest, options?: RawAxiosRequestConfig) {
+        return KEKApiFp(this.configuration).kekRecoveryPost(requestParameters.initiateKEKRecoveryRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Complete the KEK recovery process
+     * @summary Complete KEK recovery
+     * @param {KEKApiKekRecoverySessionIdCompletePostRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof KEKApi
+     */
+    public kekRecoverySessionIdCompletePost(requestParameters: KEKApiKekRecoverySessionIdCompletePostRequest, options?: RawAxiosRequestConfig) {
+        return KEKApiFp(this.configuration).kekRecoverySessionIdCompletePost(requestParameters.sessionId, requestParameters.completeKEKRecoveryRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get information about a KEK recovery session
+     * @summary Get KEK recovery session
+     * @param {KEKApiKekRecoverySessionIdGetRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof KEKApi
+     */
+    public kekRecoverySessionIdGet(requestParameters: KEKApiKekRecoverySessionIdGetRequest, options?: RawAxiosRequestConfig) {
+        return KEKApiFp(this.configuration).kekRecoverySessionIdGet(requestParameters.sessionId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Submit a share for KEK recovery
+     * @summary Submit a recovery share
+     * @param {KEKApiKekRecoverySessionIdSharesPostRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof KEKApi
+     */
+    public kekRecoverySessionIdSharesPost(requestParameters: KEKApiKekRecoverySessionIdSharesPostRequest, options?: RawAxiosRequestConfig) {
+        return KEKApiFp(this.configuration).kekRecoverySessionIdSharesPost(requestParameters.sessionId, requestParameters.submitRecoveryShareRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+
+/**
+ * PublicKeysApi - axios parameter creator
+ * @export
+ */
+export const PublicKeysApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Revoke an existing public key
+         * @summary Revoke a public key
+         * @param {string} keyId Public key ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        publicKeysKeyIdDelete: async (keyId: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'keyId' is not null or undefined
+            assertParamExists('publicKeysKeyIdDelete', 'keyId', keyId)
+            const localVarPath = `/public-keys/{keyId}`
+                .replace(`{${"keyId"}}`, encodeURIComponent(String(keyId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Update an existing public key
+         * @summary Update a public key
+         * @param {string} keyId Public key ID
+         * @param {UpdatePublicKeyRequest} updatePublicKeyRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        publicKeysKeyIdPut: async (keyId: string, updatePublicKeyRequest: UpdatePublicKeyRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'keyId' is not null or undefined
+            assertParamExists('publicKeysKeyIdPut', 'keyId', keyId)
+            // verify required parameter 'updatePublicKeyRequest' is not null or undefined
+            assertParamExists('publicKeysKeyIdPut', 'updatePublicKeyRequest', updatePublicKeyRequest)
+            const localVarPath = `/public-keys/{keyId}`
+                .replace(`{${"keyId"}}`, encodeURIComponent(String(keyId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(updatePublicKeyRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Register a new public key for a user
+         * @summary Register a public key
+         * @param {RegisterPublicKeyRequest} registerPublicKeyRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        publicKeysPost: async (registerPublicKeyRequest: RegisterPublicKeyRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'registerPublicKeyRequest' is not null or undefined
+            assertParamExists('publicKeysPost', 'registerPublicKeyRequest', registerPublicKeyRequest)
+            const localVarPath = `/public-keys`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(registerPublicKeyRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get a public key for a specific user
+         * @summary Get a user\'s public key
+         * @param {string} userId User ID
+         * @param {string} [purpose] Purpose of the public key (e.g., \&#39;admin-promotion\&#39;)
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        publicKeysUserIdGet: async (userId: string, purpose?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'userId' is not null or undefined
+            assertParamExists('publicKeysUserIdGet', 'userId', userId)
+            const localVarPath = `/public-keys/{userId}`
+                .replace(`{${"userId"}}`, encodeURIComponent(String(userId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (purpose !== undefined) {
+                localVarQueryParameter['purpose'] = purpose;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Verify that a user owns a specific public key
+         * @summary Verify ownership of a public key
+         * @param {VerifyPublicKeyRequest} verifyPublicKeyRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        publicKeysVerifyPost: async (verifyPublicKeyRequest: VerifyPublicKeyRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'verifyPublicKeyRequest' is not null or undefined
+            assertParamExists('publicKeysVerifyPost', 'verifyPublicKeyRequest', verifyPublicKeyRequest)
+            const localVarPath = `/public-keys/verify`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(verifyPublicKeyRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * PublicKeysApi - functional programming interface
+ * @export
+ */
+export const PublicKeysApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = PublicKeysApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Revoke an existing public key
+         * @summary Revoke a public key
+         * @param {string} keyId Public key ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async publicKeysKeyIdDelete(keyId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.publicKeysKeyIdDelete(keyId, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['PublicKeysApi.publicKeysKeyIdDelete']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Update an existing public key
+         * @summary Update a public key
+         * @param {string} keyId Public key ID
+         * @param {UpdatePublicKeyRequest} updatePublicKeyRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async publicKeysKeyIdPut(keyId: string, updatePublicKeyRequest: UpdatePublicKeyRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PublicKey>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.publicKeysKeyIdPut(keyId, updatePublicKeyRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['PublicKeysApi.publicKeysKeyIdPut']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Register a new public key for a user
+         * @summary Register a public key
+         * @param {RegisterPublicKeyRequest} registerPublicKeyRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async publicKeysPost(registerPublicKeyRequest: RegisterPublicKeyRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PublicKey>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.publicKeysPost(registerPublicKeyRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['PublicKeysApi.publicKeysPost']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Get a public key for a specific user
+         * @summary Get a user\'s public key
+         * @param {string} userId User ID
+         * @param {string} [purpose] Purpose of the public key (e.g., \&#39;admin-promotion\&#39;)
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async publicKeysUserIdGet(userId: string, purpose?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PublicKey>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.publicKeysUserIdGet(userId, purpose, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['PublicKeysApi.publicKeysUserIdGet']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Verify that a user owns a specific public key
+         * @summary Verify ownership of a public key
+         * @param {VerifyPublicKeyRequest} verifyPublicKeyRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async publicKeysVerifyPost(verifyPublicKeyRequest: VerifyPublicKeyRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<VerifyPublicKeyResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.publicKeysVerifyPost(verifyPublicKeyRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['PublicKeysApi.publicKeysVerifyPost']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+    }
+};
+
+/**
+ * PublicKeysApi - factory interface
+ * @export
+ */
+export const PublicKeysApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = PublicKeysApiFp(configuration)
+    return {
+        /**
+         * Revoke an existing public key
+         * @summary Revoke a public key
+         * @param {PublicKeysApiPublicKeysKeyIdDeleteRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        publicKeysKeyIdDelete(requestParameters: PublicKeysApiPublicKeysKeyIdDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.publicKeysKeyIdDelete(requestParameters.keyId, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Update an existing public key
+         * @summary Update a public key
+         * @param {PublicKeysApiPublicKeysKeyIdPutRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        publicKeysKeyIdPut(requestParameters: PublicKeysApiPublicKeysKeyIdPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<PublicKey> {
+            return localVarFp.publicKeysKeyIdPut(requestParameters.keyId, requestParameters.updatePublicKeyRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Register a new public key for a user
+         * @summary Register a public key
+         * @param {PublicKeysApiPublicKeysPostRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        publicKeysPost(requestParameters: PublicKeysApiPublicKeysPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<PublicKey> {
+            return localVarFp.publicKeysPost(requestParameters.registerPublicKeyRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get a public key for a specific user
+         * @summary Get a user\'s public key
+         * @param {PublicKeysApiPublicKeysUserIdGetRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        publicKeysUserIdGet(requestParameters: PublicKeysApiPublicKeysUserIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PublicKey> {
+            return localVarFp.publicKeysUserIdGet(requestParameters.userId, requestParameters.purpose, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Verify that a user owns a specific public key
+         * @summary Verify ownership of a public key
+         * @param {PublicKeysApiPublicKeysVerifyPostRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        publicKeysVerifyPost(requestParameters: PublicKeysApiPublicKeysVerifyPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<VerifyPublicKeyResponse> {
+            return localVarFp.publicKeysVerifyPost(requestParameters.verifyPublicKeyRequest, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * PublicKeysApi - interface
+ * @export
+ * @interface PublicKeysApi
+ */
+export interface PublicKeysApiInterface {
+    /**
+     * Revoke an existing public key
+     * @summary Revoke a public key
+     * @param {PublicKeysApiPublicKeysKeyIdDeleteRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PublicKeysApiInterface
+     */
+    publicKeysKeyIdDelete(requestParameters: PublicKeysApiPublicKeysKeyIdDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
+
+    /**
+     * Update an existing public key
+     * @summary Update a public key
+     * @param {PublicKeysApiPublicKeysKeyIdPutRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PublicKeysApiInterface
+     */
+    publicKeysKeyIdPut(requestParameters: PublicKeysApiPublicKeysKeyIdPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<PublicKey>;
+
+    /**
+     * Register a new public key for a user
+     * @summary Register a public key
+     * @param {PublicKeysApiPublicKeysPostRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PublicKeysApiInterface
+     */
+    publicKeysPost(requestParameters: PublicKeysApiPublicKeysPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<PublicKey>;
+
+    /**
+     * Get a public key for a specific user
+     * @summary Get a user\'s public key
+     * @param {PublicKeysApiPublicKeysUserIdGetRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PublicKeysApiInterface
+     */
+    publicKeysUserIdGet(requestParameters: PublicKeysApiPublicKeysUserIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PublicKey>;
+
+    /**
+     * Verify that a user owns a specific public key
+     * @summary Verify ownership of a public key
+     * @param {PublicKeysApiPublicKeysVerifyPostRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PublicKeysApiInterface
+     */
+    publicKeysVerifyPost(requestParameters: PublicKeysApiPublicKeysVerifyPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<VerifyPublicKeyResponse>;
+
+}
+
+/**
+ * Request parameters for publicKeysKeyIdDelete operation in PublicKeysApi.
+ * @export
+ * @interface PublicKeysApiPublicKeysKeyIdDeleteRequest
+ */
+export interface PublicKeysApiPublicKeysKeyIdDeleteRequest {
+    /**
+     * Public key ID
+     * @type {string}
+     * @memberof PublicKeysApiPublicKeysKeyIdDelete
+     */
+    readonly keyId: string
+}
+
+/**
+ * Request parameters for publicKeysKeyIdPut operation in PublicKeysApi.
+ * @export
+ * @interface PublicKeysApiPublicKeysKeyIdPutRequest
+ */
+export interface PublicKeysApiPublicKeysKeyIdPutRequest {
+    /**
+     * Public key ID
+     * @type {string}
+     * @memberof PublicKeysApiPublicKeysKeyIdPut
+     */
+    readonly keyId: string
+
+    /**
+     * 
+     * @type {UpdatePublicKeyRequest}
+     * @memberof PublicKeysApiPublicKeysKeyIdPut
+     */
+    readonly updatePublicKeyRequest: UpdatePublicKeyRequest
+}
+
+/**
+ * Request parameters for publicKeysPost operation in PublicKeysApi.
+ * @export
+ * @interface PublicKeysApiPublicKeysPostRequest
+ */
+export interface PublicKeysApiPublicKeysPostRequest {
+    /**
+     * 
+     * @type {RegisterPublicKeyRequest}
+     * @memberof PublicKeysApiPublicKeysPost
+     */
+    readonly registerPublicKeyRequest: RegisterPublicKeyRequest
+}
+
+/**
+ * Request parameters for publicKeysUserIdGet operation in PublicKeysApi.
+ * @export
+ * @interface PublicKeysApiPublicKeysUserIdGetRequest
+ */
+export interface PublicKeysApiPublicKeysUserIdGetRequest {
+    /**
+     * User ID
+     * @type {string}
+     * @memberof PublicKeysApiPublicKeysUserIdGet
+     */
+    readonly userId: string
+
+    /**
+     * Purpose of the public key (e.g., \&#39;admin-promotion\&#39;)
+     * @type {string}
+     * @memberof PublicKeysApiPublicKeysUserIdGet
+     */
+    readonly purpose?: string
+}
+
+/**
+ * Request parameters for publicKeysVerifyPost operation in PublicKeysApi.
+ * @export
+ * @interface PublicKeysApiPublicKeysVerifyPostRequest
+ */
+export interface PublicKeysApiPublicKeysVerifyPostRequest {
+    /**
+     * 
+     * @type {VerifyPublicKeyRequest}
+     * @memberof PublicKeysApiPublicKeysVerifyPost
+     */
+    readonly verifyPublicKeyRequest: VerifyPublicKeyRequest
+}
+
+/**
+ * PublicKeysApi - object-oriented interface
+ * @export
+ * @class PublicKeysApi
+ * @extends {BaseAPI}
+ */
+export class PublicKeysApi extends BaseAPI implements PublicKeysApiInterface {
+    /**
+     * Revoke an existing public key
+     * @summary Revoke a public key
+     * @param {PublicKeysApiPublicKeysKeyIdDeleteRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PublicKeysApi
+     */
+    public publicKeysKeyIdDelete(requestParameters: PublicKeysApiPublicKeysKeyIdDeleteRequest, options?: RawAxiosRequestConfig) {
+        return PublicKeysApiFp(this.configuration).publicKeysKeyIdDelete(requestParameters.keyId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Update an existing public key
+     * @summary Update a public key
+     * @param {PublicKeysApiPublicKeysKeyIdPutRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PublicKeysApi
+     */
+    public publicKeysKeyIdPut(requestParameters: PublicKeysApiPublicKeysKeyIdPutRequest, options?: RawAxiosRequestConfig) {
+        return PublicKeysApiFp(this.configuration).publicKeysKeyIdPut(requestParameters.keyId, requestParameters.updatePublicKeyRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Register a new public key for a user
+     * @summary Register a public key
+     * @param {PublicKeysApiPublicKeysPostRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PublicKeysApi
+     */
+    public publicKeysPost(requestParameters: PublicKeysApiPublicKeysPostRequest, options?: RawAxiosRequestConfig) {
+        return PublicKeysApiFp(this.configuration).publicKeysPost(requestParameters.registerPublicKeyRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get a public key for a specific user
+     * @summary Get a user\'s public key
+     * @param {PublicKeysApiPublicKeysUserIdGetRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PublicKeysApi
+     */
+    public publicKeysUserIdGet(requestParameters: PublicKeysApiPublicKeysUserIdGetRequest, options?: RawAxiosRequestConfig) {
+        return PublicKeysApiFp(this.configuration).publicKeysUserIdGet(requestParameters.userId, requestParameters.purpose, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Verify that a user owns a specific public key
+     * @summary Verify ownership of a public key
+     * @param {PublicKeysApiPublicKeysVerifyPostRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof PublicKeysApi
+     */
+    public publicKeysVerifyPost(requestParameters: PublicKeysApiPublicKeysVerifyPostRequest, options?: RawAxiosRequestConfig) {
+        return PublicKeysApiFp(this.configuration).publicKeysVerifyPost(requestParameters.verifyPublicKeyRequest, options).then((request) => request(this.axios, this.basePath));
     }
 }
 

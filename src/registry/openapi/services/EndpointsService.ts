@@ -1,12 +1,16 @@
-/* generated using openapi-typescript-codegen -- do not edit */
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { EndpointResponse } from '../models/EndpointResponse';
+
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
+
 export class EndpointsService {
+
     constructor(public readonly httpRequest: BaseHttpRequest) {}
+
     /**
      * Get service endpoints
      * Get the service endpoints for a tenant
@@ -15,8 +19,8 @@ export class EndpointsService {
      * @throws ApiError
      */
     public getEndpoints(
-        tenant?: string,
-    ): CancelablePromise<EndpointResponse> {
+tenant?: string,
+): CancelablePromise<EndpointResponse> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/endpoints',
@@ -29,4 +33,5 @@ export class EndpointsService {
             },
         });
     }
+
 }

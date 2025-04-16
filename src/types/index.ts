@@ -65,5 +65,8 @@ export type {
   Tenant,
   Role,
   User,
-  UserProfile
+  UserProfile,
+  KekRecoverySession,
+  KekRecoveryResult,
+  VerifyPublicKeyResponse
 } from './auth';

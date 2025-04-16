@@ -1,6 +1,6 @@
 /**
- * Auth Service API Types
- * 
+ * API Types
+ *
  * THIS FILE IS AUTO-GENERATED - DO NOT EDIT DIRECTLY
  * Generated from OpenAPI schema
  */

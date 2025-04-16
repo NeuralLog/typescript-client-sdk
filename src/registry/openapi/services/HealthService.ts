@@ -1,12 +1,16 @@
-/* generated using openapi-typescript-codegen -- do not edit */
+/* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { HealthResponse } from '../models/HealthResponse';
+
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
+
 export class HealthService {
+
     constructor(public readonly httpRequest: BaseHttpRequest) {}
+
     /**
      * Get health status
      * Get the health status of the registry
@@ -22,4 +26,5 @@ export class HealthService {
             },
         });
     }
+
 }

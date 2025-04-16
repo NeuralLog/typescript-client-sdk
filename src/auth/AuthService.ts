@@ -9,7 +9,8 @@ import {
   UserProfile,
   ApiKeyChallenge,
   ApiKeyChallengeVerification,
-  ResourceTokenVerificationResult
+  ResourceTokenVerificationResult,
+  SerializedSecretShare
 } from '../types';
 import { AuthServiceImpl } from './AuthServiceImpl';
 
@@ -260,5 +261,163 @@ export class AuthService {
    */
   public async verifyResourceToken(token: string): Promise<ResourceTokenVerificationResult> {
     return this.serviceImpl.verifyResourceToken(token);
+  }
+
+  // Public Key Management
+
+  /**
+   * Register a public key
+   *
+   * @param authToken Authentication token
+   * @param publicKey Public key data (Base64-encoded)
+   * @param purpose Purpose of the public key (e.g., 'admin-promotion')
+   * @param metadata Additional metadata (optional)
+   * @returns Promise that resolves to the registered public key
+   */
+  public async registerPublicKey(
+    authToken: string,
+    publicKey: string,
+    purpose: string,
+    metadata?: Record<string, any>
+  ): Promise<any> {
+    return this.serviceImpl.registerPublicKey(authToken, publicKey, purpose, metadata);
+  }
+
+  /**
+   * Get a user's public key
+   *
+   * @param authToken Authentication token
+   * @param userId User ID
+   * @param purpose Purpose of the public key (optional)
+   * @returns Promise that resolves to the public key
+   */
+  public async getPublicKey(
+    authToken: string,
+    userId: string,
+    purpose?: string
+  ): Promise<any> {
+    return this.serviceImpl.getPublicKey(authToken, userId, purpose);
+  }
+
+  /**
+   * Update a public key
+   *
+   * @param authToken Authentication token
+   * @param keyId Public key ID
+   * @param publicKey Public key data (Base64-encoded)
+   * @param metadata Additional metadata (optional)
+   * @returns Promise that resolves to the updated public key
+   */
+  public async updatePublicKey(
+    authToken: string,
+    keyId: string,
+    publicKey: string,
+    metadata?: Record<string, any>
+  ): Promise<any> {
+    return this.serviceImpl.updatePublicKey(authToken, keyId, publicKey, metadata);
+  }
+
+  /**
+   * Revoke a public key
+   *
+   * @param authToken Authentication token
+   * @param keyId Public key ID
+   * @returns Promise that resolves when the public key is revoked
+   */
+  public async revokePublicKey(
+    authToken: string,
+    keyId: string
+  ): Promise<void> {
+    return this.serviceImpl.revokePublicKey(authToken, keyId);
+  }
+
+  /**
+   * Verify ownership of a public key
+   *
+   * @param authToken Authentication token
+   * @param keyId Public key ID
+   * @param challenge Challenge to sign
+   * @param signature Signature of the challenge
+   * @returns Promise that resolves to the verification result
+   */
+  public async verifyPublicKey(
+    authToken: string,
+    keyId: string,
+    challenge: string,
+    signature: string
+  ): Promise<any> {
+    return this.serviceImpl.verifyPublicKey(authToken, keyId, challenge, signature);
+  }
+
+  // KEK Recovery
+
+  /**
+   * Initiate KEK version recovery
+   *
+   * @param authToken Authentication token
+   * @param versionId KEK version ID to recover
+   * @param threshold Number of shares required for recovery
+   * @param reason Reason for recovery
+   * @param expiresIn Expiration time in seconds (optional)
+   * @returns Promise that resolves to the recovery session
+   */
+  public async initiateKEKRecovery(
+    authToken: string,
+    versionId: string,
+    threshold: number,
+    reason: string,
+    expiresIn?: number
+  ): Promise<any> {
+    return this.serviceImpl.initiateKEKRecovery(authToken, versionId, threshold, reason, expiresIn);
+  }
+
+  /**
+   * Get KEK recovery session
+   *
+   * @param authToken Authentication token
+   * @param sessionId Recovery session ID
+   * @returns Promise that resolves to the recovery session
+   */
+  public async getKEKRecoverySession(
+    authToken: string,
+    sessionId: string
+  ): Promise<any> {
+    return this.serviceImpl.getKEKRecoverySession(authToken, sessionId);
+  }
+
+  /**
+   * Submit a recovery share
+   *
+   * @param authToken Authentication token
+   * @param sessionId Recovery session ID
+   * @param share The recovery share
+   * @param encryptedFor User ID for whom the share is encrypted
+   * @returns Promise that resolves to the updated recovery session
+   */
+  public async submitRecoveryShare(
+    authToken: string,
+    sessionId: string,
+    share: SerializedSecretShare,
+    encryptedFor: string
+  ): Promise<any> {
+    return this.serviceImpl.submitRecoveryShare(authToken, sessionId, share, encryptedFor);
+  }
+
+  /**
+   * Complete KEK recovery
+   *
+   * @param authToken Authentication token
+   * @param sessionId Recovery session ID
+   * @param recoveredKEK The recovered KEK (encrypted with the user's public key)
+   * @param newKEKVersion Information about the new KEK version
+   * @returns Promise that resolves to the recovery result
+   */
+  public async completeKEKRecovery(
+    authToken: string,
+    sessionId: string,
+    recoveredKEK: string,
+    newKEKVersion: { id: string, reason: string }
+  ): Promise<any> {
+    return this.serviceImpl.completeKEKRecovery(authToken, sessionId, recoveredKEK, newKEKVersion);
   }
 }
