@@ -89,6 +89,63 @@ export class LogClient extends BaseClient {
   }
 
   /**
+   * Get log names
+   *
+   * @returns Promise that resolves to an array of log names
+   */
+  public async getLogNames(): Promise<string[]> {
+    this.checkInitialization();
+    this.authProvider.checkAuthentication();
+
+    try {
+      return await this.logManager.getLogNames();
+    } catch (error) {
+      this.handleError(error, 'get log names', 'get_log_names_failed');
+    }
+  }
+
+  /**
+   * Update a log entry
+   *
+   * @param logName Log name
+   * @param logId Log ID
+   * @param data Updated log data
+   * @returns Promise that resolves when the update is complete
+   */
+  public async updateLogEntry(
+    logName: string,
+    logId: string,
+    data: Record<string, any>
+  ): Promise<void> {
+    this.checkInitialization();
+    this.authProvider.checkAuthentication();
+
+    try {
+      await this.logManager.updateLogEntry(logName, logId, data);
+    } catch (error) {
+      this.handleError(error, 'update log entry', 'update_log_entry_failed');
+    }
+  }
+
+  /**
+   * Re-encrypt a log name with a new KEK version
+   *
+   * @param logName Log name
+   * @param newKEKVersion New KEK version
+   * @returns Promise that resolves to the re-encrypted log name
+   */
+  public async reencryptLogName(logName: string, newKEKVersion: string): Promise<string> {
+    this.checkInitialization();
+    this.authProvider.checkAuthentication();
+
+    try {
+      return await this.logManager.reencryptLogName(logName, newKEKVersion);
+    } catch (error) {
+      this.handleError(error, 're-encrypt log name', 'reencrypt_log_name_failed');
+    }
+  }
+
+  /**
    * Set the base URL for the client
    *
    * @param baseUrl The new base URL

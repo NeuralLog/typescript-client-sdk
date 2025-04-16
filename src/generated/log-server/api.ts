@@ -102,6 +102,19 @@ export interface BatchAppendLogEntriesRequest {
 /**
  * 
  * @export
+ * @interface GetExpiredLogsCount200Response
+ */
+export interface GetExpiredLogsCount200Response {
+    /**
+     * Number of logs that would be affected
+     * @type {number}
+     * @memberof GetExpiredLogsCount200Response
+     */
+    'count'?: number;
+}
+/**
+ * 
+ * @export
  * @interface Log
  */
 export interface Log {
@@ -235,18 +248,6 @@ export interface LogSearchOptions {
      */
     'searchTokens'?: Array<string>;
     /**
-     * Start time for search range
-     * @type {string}
-     * @memberof LogSearchOptions
-     */
-    'startTime'?: string;
-    /**
-     * End time for search range
-     * @type {string}
-     * @memberof LogSearchOptions
-     */
-    'endTime'?: string;
-    /**
      * Maximum number of entries to return
      * @type {number}
      * @memberof LogSearchOptions
@@ -258,21 +259,7 @@ export interface LogSearchOptions {
      * @memberof LogSearchOptions
      */
     'offset'?: number;
-    /**
-     * Sort order
-     * @type {string}
-     * @memberof LogSearchOptions
-     */
-    'sortOrder'?: LogSearchOptionsSortOrderEnum;
 }
-
-export const LogSearchOptionsSortOrderEnum = {
-    Asc: 'asc',
-    Desc: 'desc'
-} as const;
-
-export type LogSearchOptionsSortOrderEnum = typeof LogSearchOptionsSortOrderEnum[keyof typeof LogSearchOptionsSortOrderEnum];
-
 /**
  * 
  * @export
@@ -359,6 +346,137 @@ export interface PaginatedLogEntries {
      * @memberof PaginatedLogEntries
      */
     'hasMore'?: boolean;
+}
+/**
+ * 
+ * @export
+ * @interface PermissionCheckRequest
+ */
+export interface PermissionCheckRequest {
+    /**
+     * Action to check (e.g., read, write, delete)
+     * @type {string}
+     * @memberof PermissionCheckRequest
+     */
+    'action': string;
+    /**
+     * Resource to check permission for
+     * @type {string}
+     * @memberof PermissionCheckRequest
+     */
+    'resource': string;
+    /**
+     * 
+     * @type {Array<PermissionCheckRequestContextualTuplesInner>}
+     * @memberof PermissionCheckRequest
+     */
+    'contextualTuples'?: Array<PermissionCheckRequestContextualTuplesInner>;
+}
+/**
+ * 
+ * @export
+ * @interface PermissionCheckRequestContextualTuplesInner
+ */
+export interface PermissionCheckRequestContextualTuplesInner {
+    /**
+     * User identifier
+     * @type {string}
+     * @memberof PermissionCheckRequestContextualTuplesInner
+     */
+    'user'?: string;
+    /**
+     * Relation type
+     * @type {string}
+     * @memberof PermissionCheckRequestContextualTuplesInner
+     */
+    'relation'?: string;
+    /**
+     * Object identifier
+     * @type {string}
+     * @memberof PermissionCheckRequestContextualTuplesInner
+     */
+    'object'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface PermissionCheckResponse
+ */
+export interface PermissionCheckResponse {
+    /**
+     * Whether the permission is allowed
+     * @type {boolean}
+     * @memberof PermissionCheckResponse
+     */
+    'allowed': boolean;
+}
+/**
+ * 
+ * @export
+ * @interface RetentionPolicy
+ */
+export interface RetentionPolicy {
+    /**
+     * Tenant ID
+     * @type {string}
+     * @memberof RetentionPolicy
+     */
+    'tenantId': string;
+    /**
+     * Log name (encrypted) - if not present, this is the tenant-wide default policy
+     * @type {string}
+     * @memberof RetentionPolicy
+     */
+    'logName'?: string;
+    /**
+     * Retention period in milliseconds (-1 for unlimited retention)
+     * @type {number}
+     * @memberof RetentionPolicy
+     */
+    'retentionPeriodMs': number;
+    /**
+     * Creation timestamp
+     * @type {string}
+     * @memberof RetentionPolicy
+     */
+    'createdAt'?: string;
+    /**
+     * Last update timestamp
+     * @type {string}
+     * @memberof RetentionPolicy
+     */
+    'updatedAt'?: string;
+    /**
+     * User ID of the user who created the policy
+     * @type {string}
+     * @memberof RetentionPolicy
+     */
+    'createdBy'?: string;
+    /**
+     * User ID of the user who last updated the policy
+     * @type {string}
+     * @memberof RetentionPolicy
+     */
+    'updatedBy'?: string;
+}
+/**
+ * 
+ * @export
+ * @interface RetentionPolicyRequest
+ */
+export interface RetentionPolicyRequest {
+    /**
+     * Retention period in milliseconds (-1 for unlimited retention)
+     * @type {number}
+     * @memberof RetentionPolicyRequest
+     */
+    'retentionPeriodMs': number;
+    /**
+     * Log name (encrypted) - if not provided, sets the tenant-wide default policy
+     * @type {string}
+     * @memberof RetentionPolicyRequest
+     */
+    'logName'?: string;
 }
 
 /**
@@ -461,6 +579,52 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(batchAppendLogEntriesRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary Check if a user has permission to perform an action on a resource
+         * @param {string} xTenantId Tenant ID
+         * @param {PermissionCheckRequest} permissionCheckRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        checkPermission: async (xTenantId: string, permissionCheckRequest: PermissionCheckRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'xTenantId' is not null or undefined
+            assertParamExists('checkPermission', 'xTenantId', xTenantId)
+            // verify required parameter 'permissionCheckRequest' is not null or undefined
+            assertParamExists('checkPermission', 'permissionCheckRequest', permissionCheckRequest)
+            const localVarPath = `/permissions/check`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            if (xTenantId != null) {
+                localVarHeaderParameter['x-tenant-id'] = String(xTenantId);
+            }
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(permissionCheckRequest, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -837,6 +1001,20 @@ export const DefaultApiFp = function(configuration?: Configuration) {
         },
         /**
          * 
+         * @summary Check if a user has permission to perform an action on a resource
+         * @param {string} xTenantId Tenant ID
+         * @param {PermissionCheckRequest} permissionCheckRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async checkPermission(xTenantId: string, permissionCheckRequest: PermissionCheckRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PermissionCheckResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.checkPermission(xTenantId, permissionCheckRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['DefaultApi.checkPermission']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * 
          * @summary Create a new log
          * @param {string} xTenantId Tenant ID
          * @param {Log} log 
@@ -968,6 +1146,16 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
         },
         /**
          * 
+         * @summary Check if a user has permission to perform an action on a resource
+         * @param {DefaultApiCheckPermissionRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        checkPermission(requestParameters: DefaultApiCheckPermissionRequest, options?: RawAxiosRequestConfig): AxiosPromise<PermissionCheckResponse> {
+            return localVarFp.checkPermission(requestParameters.xTenantId, requestParameters.permissionCheckRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
          * @summary Create a new log
          * @param {DefaultApiCreateLogRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
@@ -1064,6 +1252,16 @@ export interface DefaultApiInterface {
      * @memberof DefaultApiInterface
      */
     batchAppendLogEntries(requestParameters: DefaultApiBatchAppendLogEntriesRequest, options?: RawAxiosRequestConfig): AxiosPromise<BatchAppendLogEntries201Response>;
+
+    /**
+     * 
+     * @summary Check if a user has permission to perform an action on a resource
+     * @param {DefaultApiCheckPermissionRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApiInterface
+     */
+    checkPermission(requestParameters: DefaultApiCheckPermissionRequest, options?: RawAxiosRequestConfig): AxiosPromise<PermissionCheckResponse>;
 
     /**
      * 
@@ -1191,6 +1389,27 @@ export interface DefaultApiBatchAppendLogEntriesRequest {
      * @memberof DefaultApiBatchAppendLogEntries
      */
     readonly batchAppendLogEntriesRequest: BatchAppendLogEntriesRequest
+}
+
+/**
+ * Request parameters for checkPermission operation in DefaultApi.
+ * @export
+ * @interface DefaultApiCheckPermissionRequest
+ */
+export interface DefaultApiCheckPermissionRequest {
+    /**
+     * Tenant ID
+     * @type {string}
+     * @memberof DefaultApiCheckPermission
+     */
+    readonly xTenantId: string
+
+    /**
+     * 
+     * @type {PermissionCheckRequest}
+     * @memberof DefaultApiCheckPermission
+     */
+    readonly permissionCheckRequest: PermissionCheckRequest
 }
 
 /**
@@ -1394,6 +1613,18 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
 
     /**
      * 
+     * @summary Check if a user has permission to perform an action on a resource
+     * @param {DefaultApiCheckPermissionRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public checkPermission(requestParameters: DefaultApiCheckPermissionRequest, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).checkPermission(requestParameters.xTenantId, requestParameters.permissionCheckRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
      * @summary Create a new log
      * @param {DefaultApiCreateLogRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -1474,6 +1705,616 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
      */
     public updateLog(requestParameters: DefaultApiUpdateLogRequest, options?: RawAxiosRequestConfig) {
         return DefaultApiFp(this.configuration).updateLog(requestParameters.logName, requestParameters.xTenantId, requestParameters.logUpdate, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+
+/**
+ * RetentionPolicyApi - axios parameter creator
+ * @export
+ */
+export const RetentionPolicyApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * 
+         * @summary Delete the retention policy for a tenant or specific log
+         * @param {string} xTenantId Tenant ID
+         * @param {string} [logName] Log name (encrypted) - if not provided, deletes the tenant-wide default policy
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteRetentionPolicy: async (xTenantId: string, logName?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'xTenantId' is not null or undefined
+            assertParamExists('deleteRetentionPolicy', 'xTenantId', xTenantId)
+            const localVarPath = `/retention-policy`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (logName !== undefined) {
+                localVarQueryParameter['logName'] = logName;
+            }
+
+
+    
+            if (xTenantId != null) {
+                localVarHeaderParameter['x-tenant-id'] = String(xTenantId);
+            }
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary Get all retention policies for a tenant
+         * @param {string} xTenantId Tenant ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getAllRetentionPolicies: async (xTenantId: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'xTenantId' is not null or undefined
+            assertParamExists('getAllRetentionPolicies', 'xTenantId', xTenantId)
+            const localVarPath = `/retention-policy/all`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            if (xTenantId != null) {
+                localVarHeaderParameter['x-tenant-id'] = String(xTenantId);
+            }
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary Get the count of logs that would be affected by a retention policy change
+         * @param {string} xTenantId Tenant ID
+         * @param {number} retentionPeriodMs Retention period in milliseconds
+         * @param {string} [logName] Log name (encrypted) - if provided, gets the count for this specific log
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getExpiredLogsCount: async (xTenantId: string, retentionPeriodMs: number, logName?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'xTenantId' is not null or undefined
+            assertParamExists('getExpiredLogsCount', 'xTenantId', xTenantId)
+            // verify required parameter 'retentionPeriodMs' is not null or undefined
+            assertParamExists('getExpiredLogsCount', 'retentionPeriodMs', retentionPeriodMs)
+            const localVarPath = `/retention-policy/expired-count`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (retentionPeriodMs !== undefined) {
+                localVarQueryParameter['retentionPeriodMs'] = retentionPeriodMs;
+            }
+
+            if (logName !== undefined) {
+                localVarQueryParameter['logName'] = logName;
+            }
+
+
+    
+            if (xTenantId != null) {
+                localVarHeaderParameter['x-tenant-id'] = String(xTenantId);
+            }
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary Get the retention policy for a tenant or specific log
+         * @param {string} xTenantId Tenant ID
+         * @param {string} [logName] Log name (encrypted) - if not provided, returns the tenant-wide default policy
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getRetentionPolicy: async (xTenantId: string, logName?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'xTenantId' is not null or undefined
+            assertParamExists('getRetentionPolicy', 'xTenantId', xTenantId)
+            const localVarPath = `/retention-policy`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (logName !== undefined) {
+                localVarQueryParameter['logName'] = logName;
+            }
+
+
+    
+            if (xTenantId != null) {
+                localVarHeaderParameter['x-tenant-id'] = String(xTenantId);
+            }
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary Set the retention policy for a tenant or specific log
+         * @param {string} xTenantId Tenant ID
+         * @param {RetentionPolicyRequest} retentionPolicyRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        setRetentionPolicy: async (xTenantId: string, retentionPolicyRequest: RetentionPolicyRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'xTenantId' is not null or undefined
+            assertParamExists('setRetentionPolicy', 'xTenantId', xTenantId)
+            // verify required parameter 'retentionPolicyRequest' is not null or undefined
+            assertParamExists('setRetentionPolicy', 'retentionPolicyRequest', retentionPolicyRequest)
+            const localVarPath = `/retention-policy`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication bearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            if (xTenantId != null) {
+                localVarHeaderParameter['x-tenant-id'] = String(xTenantId);
+            }
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(retentionPolicyRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * RetentionPolicyApi - functional programming interface
+ * @export
+ */
+export const RetentionPolicyApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = RetentionPolicyApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * 
+         * @summary Delete the retention policy for a tenant or specific log
+         * @param {string} xTenantId Tenant ID
+         * @param {string} [logName] Log name (encrypted) - if not provided, deletes the tenant-wide default policy
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async deleteRetentionPolicy(xTenantId: string, logName?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteRetentionPolicy(xTenantId, logName, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['RetentionPolicyApi.deleteRetentionPolicy']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * 
+         * @summary Get all retention policies for a tenant
+         * @param {string} xTenantId Tenant ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getAllRetentionPolicies(xTenantId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<RetentionPolicy>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getAllRetentionPolicies(xTenantId, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['RetentionPolicyApi.getAllRetentionPolicies']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * 
+         * @summary Get the count of logs that would be affected by a retention policy change
+         * @param {string} xTenantId Tenant ID
+         * @param {number} retentionPeriodMs Retention period in milliseconds
+         * @param {string} [logName] Log name (encrypted) - if provided, gets the count for this specific log
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getExpiredLogsCount(xTenantId: string, retentionPeriodMs: number, logName?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<GetExpiredLogsCount200Response>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getExpiredLogsCount(xTenantId, retentionPeriodMs, logName, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['RetentionPolicyApi.getExpiredLogsCount']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * 
+         * @summary Get the retention policy for a tenant or specific log
+         * @param {string} xTenantId Tenant ID
+         * @param {string} [logName] Log name (encrypted) - if not provided, returns the tenant-wide default policy
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getRetentionPolicy(xTenantId: string, logName?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RetentionPolicy>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getRetentionPolicy(xTenantId, logName, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['RetentionPolicyApi.getRetentionPolicy']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * 
+         * @summary Set the retention policy for a tenant or specific log
+         * @param {string} xTenantId Tenant ID
+         * @param {RetentionPolicyRequest} retentionPolicyRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async setRetentionPolicy(xTenantId: string, retentionPolicyRequest: RetentionPolicyRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RetentionPolicy>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.setRetentionPolicy(xTenantId, retentionPolicyRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['RetentionPolicyApi.setRetentionPolicy']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+    }
+};
+
+/**
+ * RetentionPolicyApi - factory interface
+ * @export
+ */
+export const RetentionPolicyApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = RetentionPolicyApiFp(configuration)
+    return {
+        /**
+         * 
+         * @summary Delete the retention policy for a tenant or specific log
+         * @param {RetentionPolicyApiDeleteRetentionPolicyRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteRetentionPolicy(requestParameters: RetentionPolicyApiDeleteRetentionPolicyRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.deleteRetentionPolicy(requestParameters.xTenantId, requestParameters.logName, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary Get all retention policies for a tenant
+         * @param {RetentionPolicyApiGetAllRetentionPoliciesRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getAllRetentionPolicies(requestParameters: RetentionPolicyApiGetAllRetentionPoliciesRequest, options?: RawAxiosRequestConfig): AxiosPromise<Array<RetentionPolicy>> {
+            return localVarFp.getAllRetentionPolicies(requestParameters.xTenantId, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary Get the count of logs that would be affected by a retention policy change
+         * @param {RetentionPolicyApiGetExpiredLogsCountRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getExpiredLogsCount(requestParameters: RetentionPolicyApiGetExpiredLogsCountRequest, options?: RawAxiosRequestConfig): AxiosPromise<GetExpiredLogsCount200Response> {
+            return localVarFp.getExpiredLogsCount(requestParameters.xTenantId, requestParameters.retentionPeriodMs, requestParameters.logName, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary Get the retention policy for a tenant or specific log
+         * @param {RetentionPolicyApiGetRetentionPolicyRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getRetentionPolicy(requestParameters: RetentionPolicyApiGetRetentionPolicyRequest, options?: RawAxiosRequestConfig): AxiosPromise<RetentionPolicy> {
+            return localVarFp.getRetentionPolicy(requestParameters.xTenantId, requestParameters.logName, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary Set the retention policy for a tenant or specific log
+         * @param {RetentionPolicyApiSetRetentionPolicyRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        setRetentionPolicy(requestParameters: RetentionPolicyApiSetRetentionPolicyRequest, options?: RawAxiosRequestConfig): AxiosPromise<RetentionPolicy> {
+            return localVarFp.setRetentionPolicy(requestParameters.xTenantId, requestParameters.retentionPolicyRequest, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * RetentionPolicyApi - interface
+ * @export
+ * @interface RetentionPolicyApi
+ */
+export interface RetentionPolicyApiInterface {
+    /**
+     * 
+     * @summary Delete the retention policy for a tenant or specific log
+     * @param {RetentionPolicyApiDeleteRetentionPolicyRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof RetentionPolicyApiInterface
+     */
+    deleteRetentionPolicy(requestParameters: RetentionPolicyApiDeleteRetentionPolicyRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
+
+    /**
+     * 
+     * @summary Get all retention policies for a tenant
+     * @param {RetentionPolicyApiGetAllRetentionPoliciesRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof RetentionPolicyApiInterface
+     */
+    getAllRetentionPolicies(requestParameters: RetentionPolicyApiGetAllRetentionPoliciesRequest, options?: RawAxiosRequestConfig): AxiosPromise<Array<RetentionPolicy>>;
+
+    /**
+     * 
+     * @summary Get the count of logs that would be affected by a retention policy change
+     * @param {RetentionPolicyApiGetExpiredLogsCountRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof RetentionPolicyApiInterface
+     */
+    getExpiredLogsCount(requestParameters: RetentionPolicyApiGetExpiredLogsCountRequest, options?: RawAxiosRequestConfig): AxiosPromise<GetExpiredLogsCount200Response>;
+
+    /**
+     * 
+     * @summary Get the retention policy for a tenant or specific log
+     * @param {RetentionPolicyApiGetRetentionPolicyRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof RetentionPolicyApiInterface
+     */
+    getRetentionPolicy(requestParameters: RetentionPolicyApiGetRetentionPolicyRequest, options?: RawAxiosRequestConfig): AxiosPromise<RetentionPolicy>;
+
+    /**
+     * 
+     * @summary Set the retention policy for a tenant or specific log
+     * @param {RetentionPolicyApiSetRetentionPolicyRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof RetentionPolicyApiInterface
+     */
+    setRetentionPolicy(requestParameters: RetentionPolicyApiSetRetentionPolicyRequest, options?: RawAxiosRequestConfig): AxiosPromise<RetentionPolicy>;
+
+}
+
+/**
+ * Request parameters for deleteRetentionPolicy operation in RetentionPolicyApi.
+ * @export
+ * @interface RetentionPolicyApiDeleteRetentionPolicyRequest
+ */
+export interface RetentionPolicyApiDeleteRetentionPolicyRequest {
+    /**
+     * Tenant ID
+     * @type {string}
+     * @memberof RetentionPolicyApiDeleteRetentionPolicy
+     */
+    readonly xTenantId: string
+
+    /**
+     * Log name (encrypted) - if not provided, deletes the tenant-wide default policy
+     * @type {string}
+     * @memberof RetentionPolicyApiDeleteRetentionPolicy
+     */
+    readonly logName?: string
+}
+
+/**
+ * Request parameters for getAllRetentionPolicies operation in RetentionPolicyApi.
+ * @export
+ * @interface RetentionPolicyApiGetAllRetentionPoliciesRequest
+ */
+export interface RetentionPolicyApiGetAllRetentionPoliciesRequest {
+    /**
+     * Tenant ID
+     * @type {string}
+     * @memberof RetentionPolicyApiGetAllRetentionPolicies
+     */
+    readonly xTenantId: string
+}
+
+/**
+ * Request parameters for getExpiredLogsCount operation in RetentionPolicyApi.
+ * @export
+ * @interface RetentionPolicyApiGetExpiredLogsCountRequest
+ */
+export interface RetentionPolicyApiGetExpiredLogsCountRequest {
+    /**
+     * Tenant ID
+     * @type {string}
+     * @memberof RetentionPolicyApiGetExpiredLogsCount
+     */
+    readonly xTenantId: string
+
+    /**
+     * Retention period in milliseconds
+     * @type {number}
+     * @memberof RetentionPolicyApiGetExpiredLogsCount
+     */
+    readonly retentionPeriodMs: number
+
+    /**
+     * Log name (encrypted) - if provided, gets the count for this specific log
+     * @type {string}
+     * @memberof RetentionPolicyApiGetExpiredLogsCount
+     */
+    readonly logName?: string
+}
+
+/**
+ * Request parameters for getRetentionPolicy operation in RetentionPolicyApi.
+ * @export
+ * @interface RetentionPolicyApiGetRetentionPolicyRequest
+ */
+export interface RetentionPolicyApiGetRetentionPolicyRequest {
+    /**
+     * Tenant ID
+     * @type {string}
+     * @memberof RetentionPolicyApiGetRetentionPolicy
+     */
+    readonly xTenantId: string
+
+    /**
+     * Log name (encrypted) - if not provided, returns the tenant-wide default policy
+     * @type {string}
+     * @memberof RetentionPolicyApiGetRetentionPolicy
+     */
+    readonly logName?: string
+}
+
+/**
+ * Request parameters for setRetentionPolicy operation in RetentionPolicyApi.
+ * @export
+ * @interface RetentionPolicyApiSetRetentionPolicyRequest
+ */
+export interface RetentionPolicyApiSetRetentionPolicyRequest {
+    /**
+     * Tenant ID
+     * @type {string}
+     * @memberof RetentionPolicyApiSetRetentionPolicy
+     */
+    readonly xTenantId: string
+
+    /**
+     * 
+     * @type {RetentionPolicyRequest}
+     * @memberof RetentionPolicyApiSetRetentionPolicy
+     */
+    readonly retentionPolicyRequest: RetentionPolicyRequest
+}
+
+/**
+ * RetentionPolicyApi - object-oriented interface
+ * @export
+ * @class RetentionPolicyApi
+ * @extends {BaseAPI}
+ */
+export class RetentionPolicyApi extends BaseAPI implements RetentionPolicyApiInterface {
+    /**
+     * 
+     * @summary Delete the retention policy for a tenant or specific log
+     * @param {RetentionPolicyApiDeleteRetentionPolicyRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof RetentionPolicyApi
+     */
+    public deleteRetentionPolicy(requestParameters: RetentionPolicyApiDeleteRetentionPolicyRequest, options?: RawAxiosRequestConfig) {
+        return RetentionPolicyApiFp(this.configuration).deleteRetentionPolicy(requestParameters.xTenantId, requestParameters.logName, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary Get all retention policies for a tenant
+     * @param {RetentionPolicyApiGetAllRetentionPoliciesRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof RetentionPolicyApi
+     */
+    public getAllRetentionPolicies(requestParameters: RetentionPolicyApiGetAllRetentionPoliciesRequest, options?: RawAxiosRequestConfig) {
+        return RetentionPolicyApiFp(this.configuration).getAllRetentionPolicies(requestParameters.xTenantId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary Get the count of logs that would be affected by a retention policy change
+     * @param {RetentionPolicyApiGetExpiredLogsCountRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof RetentionPolicyApi
+     */
+    public getExpiredLogsCount(requestParameters: RetentionPolicyApiGetExpiredLogsCountRequest, options?: RawAxiosRequestConfig) {
+        return RetentionPolicyApiFp(this.configuration).getExpiredLogsCount(requestParameters.xTenantId, requestParameters.retentionPeriodMs, requestParameters.logName, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary Get the retention policy for a tenant or specific log
+     * @param {RetentionPolicyApiGetRetentionPolicyRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof RetentionPolicyApi
+     */
+    public getRetentionPolicy(requestParameters: RetentionPolicyApiGetRetentionPolicyRequest, options?: RawAxiosRequestConfig) {
+        return RetentionPolicyApiFp(this.configuration).getRetentionPolicy(requestParameters.xTenantId, requestParameters.logName, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary Set the retention policy for a tenant or specific log
+     * @param {RetentionPolicyApiSetRetentionPolicyRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof RetentionPolicyApi
+     */
+    public setRetentionPolicy(requestParameters: RetentionPolicyApiSetRetentionPolicyRequest, options?: RawAxiosRequestConfig) {
+        return RetentionPolicyApiFp(this.configuration).setRetentionPolicy(requestParameters.xTenantId, requestParameters.retentionPolicyRequest, options).then((request) => request(this.axios, this.basePath));
     }
 }
 

@@ -691,6 +691,74 @@ export class CryptoService {
   }
 
   /**
+   * Rotate KEK to a new version
+   *
+   * @param currentKEK The current KEK
+   * @param reason Reason for rotation
+   * @returns Promise that resolves to the new KEK and version ID
+   */
+  public async rotateKEK(currentKEK: Uint8Array, reason: string): Promise<{ kek: Uint8Array, versionId: string }> {
+    try {
+      // Generate a new KEK
+      const versionId = await this.generateId();
+      const newKEK = await this.generateKEK(versionId);
+
+      // Store in the map
+      this.operationalKEKs.set(versionId, newKEK);
+
+      // Update current version
+      this.currentKEKVersion = versionId;
+
+      return { kek: newKEK, versionId };
+    } catch (error) {
+      return this.handleError(error, 'rotate KEK', 'rotate_kek_failed');
+    }
+  }
+
+  /**
+   * Re-encrypt data with a new KEK version
+   *
+   * @param data The encrypted data
+   * @param oldKEKVersion The old KEK version
+   * @param newKEKVersion The new KEK version
+   * @returns Promise that resolves to the re-encrypted data
+   */
+  public async reencryptData(data: any, oldKEKVersion: string, newKEKVersion: string): Promise<any> {
+    try {
+      // Get the old and new KEKs
+      const oldKEK = this.getOperationalKEK(oldKEKVersion);
+      const newKEK = this.getOperationalKEK(newKEKVersion);
+
+      // Decrypt the data with the old KEK
+      const decryptedData = await this.decryptLogData(data, oldKEK);
+
+      // Encrypt the data with the new KEK
+      return await this.encryptLogData(decryptedData, newKEK);
+    } catch (error) {
+      return this.handleError(error, 're-encrypt data', 'reencrypt_data_failed');
+    }
+  }
+
+  /**
+   * Re-encrypt log name with a new KEK version
+   *
+   * @param encryptedLogName The encrypted log name
+   * @param newKEKVersion The new KEK version
+   * @returns Promise that resolves to the re-encrypted log name
+   */
+  public async reencryptLogName(encryptedLogName: string, newKEKVersion: string): Promise<string> {
+    try {
+      // Decrypt the log name
+      const logName = await this.decryptLogName(encryptedLogName);
+
+      // Encrypt the log name with the new KEK version
+      return await this.encryptLogName(logName, newKEKVersion);
+    } catch (error) {
+      return this.handleError(error, 're-encrypt log name', 'reencrypt_log_name_failed');
+    }
+  }
+
+  /**
    * Export a public key to a format suitable for transmission
    *
    * @param publicKey The public key to export

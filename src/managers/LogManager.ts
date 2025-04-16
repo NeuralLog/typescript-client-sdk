@@ -233,6 +233,107 @@ export class LogManager {
   }
 
   /**
+   * Get log names
+   *
+   * @returns Promise that resolves to an array of log names
+   */
+  public async getLogNames(): Promise<string[]> {
+    try {
+      // Get auth token
+      const authToken = this.getAuthToken();
+
+      // Get resource token for logs
+      const resourceToken = await this.authService.getResourceToken(
+        authToken,
+        'logs'
+      );
+
+      // Get log names from server using the LogServerClient
+      const encryptedLogNames = await this.logServerClient.getLogNames(resourceToken);
+
+      // Decrypt log names
+      return Promise.all(
+        encryptedLogNames.map(async (encryptedLogName) => {
+          try {
+            return await this.cryptoService.decryptLogName(encryptedLogName);
+          } catch (decryptError) {
+            this.logger.error(`Failed to decrypt log name: ${decryptError}`);
+            return `encrypted:${encryptedLogName}`;
+          }
+        })
+      );
+    } catch (error) {
+      throw new LogError(
+        `Failed to get log names: ${error instanceof Error ? error.message : String(error)}`,
+        'get_log_names_failed'
+      );
+    }
+  }
+
+  /**
+   * Update a log entry
+   *
+   * @param logName Log name
+   * @param logId Log ID
+   * @param data Updated log data
+   * @returns Promise that resolves when the update is complete
+   */
+  public async updateLogEntry(
+    logName: string,
+    logId: string,
+    data: Record<string, any>
+  ): Promise<void> {
+    try {
+      // Encrypt log name
+      const encryptedLogName = await this.cryptoService.encryptLogName(logName);
+
+      // Encrypt log data
+      const encryptedData = await this.cryptoService.encryptLogData(data);
+
+      // Get auth token
+      const authToken = this.getAuthToken();
+
+      // Get resource token
+      const resourceToken = await this.authService.getResourceToken(
+        authToken,
+        `logs/${encryptedLogName}`
+      );
+
+      // Update log entry on server using the LogServerClient
+      await this.logServerClient.updateLogEntry(
+        encryptedLogName,
+        logId,
+        encryptedData,
+        resourceToken
+      );
+    } catch (error) {
+      throw new LogError(
+        `Failed to update log entry: ${error instanceof Error ? error.message : String(error)}`,
+        'update_log_entry_failed'
+      );
+    }
+  }
+
+  /**
+   * Re-encrypt a log name with a new KEK version
+   *
+   * @param logName Log name
+   * @param newKEKVersion New KEK version
+   * @returns Promise that resolves to the re-encrypted log name
+   */
+  public async reencryptLogName(logName: string, newKEKVersion: string): Promise<string> {
+    try {
+      // Re-encrypt the log name with the new KEK version
+      return await this.cryptoService.reencryptLogName(logName, newKEKVersion);
+    } catch (error) {
+      throw new LogError(
+        `Failed to re-encrypt log name: ${error instanceof Error ? error.message : String(error)}`,
+        'reencrypt_log_name_failed'
+      );
+    }
+  }
+
+  /**
    * Set the base URL for the log server client
    *
    * @param baseUrl The new base URL

@@ -282,6 +282,57 @@ export class KeyHierarchyManager {
   }
 
   /**
+   * Re-encrypt data with a new KEK version
+   *
+   * @param data The data to re-encrypt
+   * @param oldKEKVersion The old KEK version
+   * @param newKEKVersion The new KEK version
+   * @returns Promise that resolves to the re-encrypted data
+   */
+  public async reencryptData(data: any, oldKEKVersion: string, newKEKVersion: string): Promise<any> {
+    try {
+      return await this.cryptoService.reencryptData(data, oldKEKVersion, newKEKVersion);
+    } catch (error) {
+      throw new LogError(
+        `Failed to re-encrypt data: ${error instanceof Error ? error.message : String(error)}`,
+        'reencrypt_data_failed'
+      );
+    }
+  }
+
+  /**
+   * Get the current KEK version
+   *
+   * @returns The current KEK version
+   */
+  public getCurrentKEKVersion(): string {
+    try {
+      return this.cryptoService.getCurrentKEKVersion();
+    } catch (error) {
+      throw new LogError(
+        `Failed to get current KEK version: ${error instanceof Error ? error.message : String(error)}`,
+        'get_current_kek_version_failed'
+      );
+    }
+  }
+
+  /**
+   * Set the current KEK version
+   *
+   * @param version The KEK version to set as current
+   */
+  public setCurrentKEKVersion(version: string): void {
+    try {
+      this.cryptoService.setCurrentKEKVersion(version);
+    } catch (error) {
+      throw new LogError(
+        `Failed to set current KEK version: ${error instanceof Error ? error.message : String(error)}`,
+        'set_current_kek_version_failed'
+      );
+    }
+  }
+
+  /**
    * Set the base URL for the KEK service
    *
    * @param baseUrl The new base URL

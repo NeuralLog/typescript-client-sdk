@@ -177,6 +177,74 @@ export class LogServerClient {
   }
 
   /**
+   * Get log names
+   *
+   * @param resourceToken Resource token
+   * @returns Promise that resolves to the encrypted log names
+   */
+  public async getLogNames(resourceToken: string): Promise<string[]> {
+    try {
+      // Make the API call
+      const response = await this.api.getLogNames({
+        xTenantId: this.tenantId
+      }, {
+        headers: {
+          Authorization: `Bearer ${resourceToken}`
+        }
+      });
+
+      // Return the encrypted log names
+      return response.data.logNames || [];
+    } catch (error) {
+      throw new LogError(
+        `Failed to get log names: ${error instanceof Error ? error.message : String(error)}`,
+        'get_log_names_failed'
+      );
+    }
+  }
+
+  /**
+   * Update a log entry
+   *
+   * @param encryptedLogName Encrypted log name
+   * @param logId Log ID
+   * @param encryptedData Encrypted log data
+   * @param resourceToken Resource token
+   * @returns Promise that resolves when the update is complete
+   */
+  public async updateLogEntry(
+    encryptedLogName: string,
+    logId: string,
+    encryptedData: Record<string, any>,
+    resourceToken: string
+  ): Promise<void> {
+    try {
+      // Create the log entry
+      const logEntry = {
+        logId,
+        data: encryptedData
+      };
+
+      // Make the API call
+      await this.api.updateLogEntry({
+        logName: encryptedLogName,
+        entryId: logId,
+        xTenantId: this.tenantId,
+        logEntry
+      }, {
+        headers: {
+          Authorization: `Bearer ${resourceToken}`
+        }
+      });
+    } catch (error) {
+      throw new LogError(
+        `Failed to update log entry: ${error instanceof Error ? error.message : String(error)}`,
+        'update_log_entry_failed'
+      );
+    }
+  }
+
+  /**
    * Set the base URL for the log server client
    *
    * @param baseUrl The new base URL

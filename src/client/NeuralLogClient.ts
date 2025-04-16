@@ -4,6 +4,7 @@ import { AuthClient } from './AuthClient';
 import { UserClient } from './UserClient';
 import { KeyManagementClient } from './KeyManagementClient';
 import { ApiKeyClient } from './ApiKeyClient';
+import { RetentionPolicyClient } from './RetentionPolicyClient';
 import { NeuralLogClientOptions, LogOptions, GetLogsOptions, SearchOptions } from './types';
 import { ConfigurationService } from './services/ConfigurationService';
 import { AuthProvider } from './services/AuthProvider';
@@ -34,6 +35,7 @@ export class NeuralLogClient {
   private userClient: UserClient;
   private keyManagementClient: KeyManagementClient;
   private apiKeyClient: ApiKeyClient;
+  private retentionPolicyClient: RetentionPolicyClient;
   private initialized: boolean = false;
 
   /**
@@ -88,6 +90,7 @@ export class NeuralLogClient {
     this.userClient = new UserClient(userManager, this.configService, authProvider);
     this.keyManagementClient = new KeyManagementClient(keyHierarchyManager, this.configService, authProvider);
     this.apiKeyClient = new ApiKeyClient(authManager, this.configService, authProvider);
+    this.retentionPolicyClient = new RetentionPolicyClient(this.configService, authProvider);
 
     // Initialize with API key if provided
     const apiKey = this.configService.getApiKey();
@@ -114,7 +117,8 @@ export class NeuralLogClient {
         this.logClient.initialize(),
         this.userClient.initialize(),
         this.keyManagementClient.initialize(),
-        this.apiKeyClient.initialize()
+        this.apiKeyClient.initialize(),
+        this.retentionPolicyClient.initialize()
       ]);
 
       this.initialized = true;
@@ -142,6 +146,7 @@ export class NeuralLogClient {
       this.userClient.setBaseUrl(authUrl);
       this.keyManagementClient.setBaseUrl(authUrl);
       this.apiKeyClient.setBaseUrl(authUrl);
+      this.retentionPolicyClient.setBaseUrl(serverUrl);
 
       this.logger.info(`Updated service URLs from registry: server=${serverUrl}, auth=${authUrl}`);
     } catch (error) {
@@ -511,6 +516,75 @@ export class NeuralLogClient {
   }
 
   /**
+   * Get log names
+   *
+   * @returns Promise that resolves to an array of log names
+   */
+  public async getLogNames(): Promise<string[]> {
+    try {
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
+
+      // Get log names with the log client
+      return await this.logClient.getLogNames();
+    } catch (error) {
+      return this.handleError(error, 'get log names', 'get_log_names_failed');
+    }
+  }
+
+  /**
+   * Re-encrypt logs with a new KEK version
+   *
+   * @param logNames Array of log names to re-encrypt
+   * @param newKEKVersion New KEK version ID
+   * @returns Promise that resolves when re-encryption is complete
+   */
+  public async reencryptLogs(logNames: string[], newKEKVersion: string): Promise<void> {
+    try {
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
+
+      // Get the current KEK version
+      const currentKEKVersion = this.keyManagementClient.getCurrentKEKVersion();
+
+      if (!currentKEKVersion) {
+        throw new LogError('No current KEK version found', 'no_current_kek_version');
+      }
+
+      // Re-encrypt each log
+      for (const logName of logNames) {
+        // Get the log entries
+        const logs = await this.getLogs(logName);
+
+        // Re-encrypt each log entry
+        for (const log of logs) {
+          // Re-encrypt the log data
+          const reencryptedLog = await this.keyManagementClient.reencryptData(
+            log,
+            currentKEKVersion,
+            newKEKVersion
+          );
+
+          // Update the log entry
+          await this.logClient.updateLogEntry(logName, log.id, reencryptedLog);
+        }
+
+        // Re-encrypt the log name
+        await this.logClient.reencryptLogName(logName, newKEKVersion);
+      }
+
+      // Update the current KEK version
+      this.keyManagementClient.setCurrentKEKVersion(newKEKVersion);
+    } catch (error) {
+      return this.handleError(error, 're-encrypt logs', 'reencrypt_logs_failed');
+    }
+  }
+
+  /**
    * Upload a user's public key
    *
    * @param userPassword User password
@@ -624,6 +698,176 @@ export class NeuralLogClient {
    */
   public getApiKeyClient(): ApiKeyClient {
     return this.apiKeyClient;
+  }
+
+  /**
+   * Get the retention policy for the tenant or a specific log
+   *
+   * @param logName Optional log name - if provided, gets the policy for this specific log
+   * @returns Promise that resolves to the retention policy
+   */
+  public async getRetentionPolicy(logName?: string): Promise<any> {
+    try {
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
+
+      // If log name is provided, encrypt it
+      let encryptedLogName: string | undefined;
+      if (logName) {
+        const cryptoService = this.getCryptoService();
+        encryptedLogName = await cryptoService.encryptLogName(logName, this.configService.getTenantId());
+      }
+
+      // Get retention policy with the retention policy client
+      const policy = await this.retentionPolicyClient.getRetentionPolicy(encryptedLogName);
+
+      // If the response includes an encrypted log name, decrypt it
+      if (policy.logName) {
+        try {
+          const cryptoService = this.getCryptoService();
+          policy.logName = await cryptoService.decryptLogName(policy.logName, this.configService.getTenantId());
+        } catch (error) {
+          this.logger.warn('Failed to decrypt log name in retention policy:', error);
+          // Keep the encrypted log name if decryption fails
+        }
+      }
+
+      return policy;
+    } catch (error) {
+      throw this.handleError(error, 'get retention policy', 'get_retention_policy_failed');
+    }
+  }
+
+  /**
+   * Set the retention policy for the tenant or a specific log
+   *
+   * @param retentionPeriodMs Retention period in milliseconds
+   * @param logName Optional log name - if provided, sets the policy for this specific log
+   * @returns Promise that resolves to the updated retention policy
+   */
+  public async setRetentionPolicy(retentionPeriodMs: number, logName?: string): Promise<any> {
+    try {
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
+
+      // If log name is provided, encrypt it
+      let encryptedLogName: string | undefined;
+      if (logName) {
+        const cryptoService = this.getCryptoService();
+        encryptedLogName = await cryptoService.encryptLogName(logName, this.configService.getTenantId());
+      }
+
+      // Set retention policy with the retention policy client
+      const policy = await this.retentionPolicyClient.setRetentionPolicy(retentionPeriodMs, encryptedLogName);
+
+      // If the response includes an encrypted log name, decrypt it
+      if (policy.logName) {
+        try {
+          const cryptoService = this.getCryptoService();
+          policy.logName = await cryptoService.decryptLogName(policy.logName, this.configService.getTenantId());
+        } catch (error) {
+          this.logger.warn('Failed to decrypt log name in retention policy:', error);
+          // Keep the encrypted log name if decryption fails
+        }
+      }
+
+      return policy;
+    } catch (error) {
+      throw this.handleError(error, 'set retention policy', 'set_retention_policy_failed');
+    }
+  }
+
+  /**
+   * Delete the retention policy for the tenant or a specific log
+   *
+   * @param logName Optional log name - if provided, deletes the policy for this specific log
+   * @returns Promise that resolves when the retention policy is deleted
+   */
+  public async deleteRetentionPolicy(logName?: string): Promise<void> {
+    try {
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
+
+      // If log name is provided, encrypt it
+      let encryptedLogName: string | undefined;
+      if (logName) {
+        const cryptoService = this.getCryptoService();
+        encryptedLogName = await cryptoService.encryptLogName(logName, this.configService.getTenantId());
+      }
+
+      // Delete retention policy with the retention policy client
+      await this.retentionPolicyClient.deleteRetentionPolicy(encryptedLogName);
+    } catch (error) {
+      throw this.handleError(error, 'delete retention policy', 'delete_retention_policy_failed');
+    }
+  }
+
+  /**
+   * Get all retention policies for the tenant
+   *
+   * @returns Promise that resolves to an array of retention policies
+   */
+  public async getAllRetentionPolicies(): Promise<any[]> {
+    try {
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
+
+      // Get all retention policies with the retention policy client
+      const policies = await this.retentionPolicyClient.getAllRetentionPolicies();
+
+      // Decrypt log names in the policies
+      for (const policy of policies) {
+        if (policy.logName) {
+          try {
+            const cryptoService = this.getCryptoService();
+            policy.logName = await cryptoService.decryptLogName(policy.logName, this.configService.getTenantId());
+          } catch (error) {
+            this.logger.warn('Failed to decrypt log name in retention policy:', error);
+            // Keep the encrypted log name if decryption fails
+          }
+        }
+      }
+
+      return policies;
+    } catch (error) {
+      throw this.handleError(error, 'get all retention policies', 'get_all_retention_policies_failed');
+    }
+  }
+
+  /**
+   * Get the count of logs that would be affected by a retention policy change
+   *
+   * @param retentionPeriodMs Retention period in milliseconds
+   * @param logName Optional log name - if provided, gets the count for this specific log
+   * @returns Promise that resolves to the count of logs that would be affected
+   */
+  public async getExpiredLogsCount(retentionPeriodMs: number, logName?: string): Promise<number> {
+    try {
+      // Ensure client is initialized
+      if (!this.isInitialized()) {
+        await this.initialize();
+      }
+
+      // If log name is provided, encrypt it
+      let encryptedLogName: string | undefined;
+      if (logName) {
+        const cryptoService = this.getCryptoService();
+        encryptedLogName = await cryptoService.encryptLogName(logName, this.configService.getTenantId());
+      }
+
+      // Get expired logs count with the retention policy client
+      return await this.retentionPolicyClient.getExpiredLogsCount(retentionPeriodMs, encryptedLogName);
+    } catch (error) {
+      throw this.handleError(error, 'get expired logs count', 'get_expired_logs_count_failed');
+    }
   }
 
   /**

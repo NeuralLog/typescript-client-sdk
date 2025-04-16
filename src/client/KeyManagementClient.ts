@@ -169,6 +169,52 @@ export class KeyManagementClient extends BaseClient {
   }
 
   /**
+   * Re-encrypt data with a new KEK version
+   *
+   * @param data The data to re-encrypt
+   * @param oldKEKVersion The old KEK version
+   * @param newKEKVersion The new KEK version
+   * @returns Promise that resolves to the re-encrypted data
+   */
+  public async reencryptData(data: any, oldKEKVersion: string, newKEKVersion: string): Promise<any> {
+    this.authProvider.checkAuthentication();
+    this.checkInitialization();
+
+    try {
+      return await this.keyHierarchyManager.reencryptData(data, oldKEKVersion, newKEKVersion);
+    } catch (error) {
+      this.handleError(error, 're-encrypt data', 'reencrypt_data_failed');
+    }
+  }
+
+  /**
+   * Get the current KEK version
+   *
+   * @returns The current KEK version
+   */
+  public getCurrentKEKVersion(): string | null {
+    try {
+      return this.keyHierarchyManager.getCurrentKEKVersion();
+    } catch (error) {
+      this.handleError(error, 'get current KEK version', 'get_current_kek_version_failed');
+      return null;
+    }
+  }
+
+  /**
+   * Set the current KEK version
+   *
+   * @param version The KEK version to set as current
+   */
+  public setCurrentKEKVersion(version: string): void {
+    try {
+      this.keyHierarchyManager.setCurrentKEKVersion(version);
+    } catch (error) {
+      this.handleError(error, 'set current KEK version', 'set_current_kek_version_failed');
+    }
+  }
+
+  /**
    * Set the base URL for the client
    *
    * @param baseUrl The new base URL
