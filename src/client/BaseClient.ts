@@ -93,4 +93,14 @@ export abstract class BaseClient implements IClient {
       errorCode
     );
   }
+
+  /**
+   * Set the base URL for the client
+   * This is used to update the URL after initialization
+   *
+   * @param baseUrl The new base URL
+   */
+  public setBaseUrl(baseUrl: string): void {
+    // This method should be overridden by subclasses that need to update their service URLs
+  }
 }

@@ -2,6 +2,7 @@ import { AxiosInstance } from 'axios';
 import axios from 'axios';
 import { LogError } from '../errors';
 import { Log, LogEntry, LogSearchOptions, PaginatedResult } from '../types';
+import { OpenApiLogServerClient } from './OpenApiLogServerClient';
 
 /**
  * Service for interacting with the NeuralLog logs service
@@ -9,6 +10,7 @@ import { Log, LogEntry, LogSearchOptions, PaginatedResult } from '../types';
 export class LogsService {
   private baseUrl: string;
   private apiClient: AxiosInstance;
+  private openApiClient: OpenApiLogServerClient;
 
   /**
    * Create a new LogsService
@@ -19,6 +21,7 @@ export class LogsService {
   constructor(baseUrl: string, apiClient: AxiosInstance) {
     this.baseUrl = baseUrl;
     this.apiClient = apiClient;
+    this.openApiClient = new OpenApiLogServerClient(baseUrl, apiClient);
   }
 
   /**
@@ -54,30 +57,8 @@ export class LogsService {
     resourceToken: string,
     searchTokens?: string[]
   ): Promise<string> {
-    try {
-      // Include search tokens in the request if provided
-      const logEntry = searchTokens ? { ...encryptedData, searchTokens } : encryptedData;
-
-      // Wrap the log entry in an array to match Java implementation
-      const dataToSend = [logEntry];
-
-      const response = await this.apiClient.post(
-        `${this.baseUrl}/logs/${logName}`,
-        dataToSend,
-        {
-          headers: {
-            Authorization: `Bearer ${resourceToken}`
-          }
-        }
-      );
-
-      return response.data.logId;
-    } catch (error) {
-      throw new LogError(
-        `Failed to append log: ${error instanceof Error ? error.message : String(error)}`,
-        'append_log_failed'
-      );
-    }
+    // Use the OpenAPI client
+    return this.openApiClient.appendLog(logName, encryptedData, resourceToken, searchTokens);
   }
 
   /**
@@ -91,24 +72,8 @@ export class LogsService {
     authToken: string,
     log: Log
   ): Promise<Log> {
-    try {
-      const response = await this.apiClient.post(
-        `${this.baseUrl}/logs`,
-        log,
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`
-          }
-        }
-      );
-
-      return response.data;
-    } catch (error) {
-      throw new LogError(
-        `Failed to create log: ${error instanceof Error ? error.message : String(error)}`,
-        'create_log_failed'
-      );
-    }
+    // Use the OpenAPI client
+    return this.openApiClient.createLog(authToken, log);
   }
 
   /**
@@ -124,24 +89,8 @@ export class LogsService {
     limit: number = 100,
     offset: number = 0
   ): Promise<Log[]> {
-    try {
-      const response = await this.apiClient.get(
-        `${this.baseUrl}/logs`,
-        {
-          params: { limit, offset },
-          headers: {
-            Authorization: `Bearer ${authToken}`
-          }
-        }
-      );
-
-      return response.data.logs || [];
-    } catch (error) {
-      throw new LogError(
-        `Failed to get logs: ${error instanceof Error ? error.message : String(error)}`,
-        'get_all_logs_failed'
-      );
-    }
+    // Use the OpenAPI client
+    return this.openApiClient.getLogs(authToken, limit, offset);
   }
 
   /**
@@ -159,41 +108,8 @@ export class LogsService {
     limit: number,
     resourceToken: string
   ): Promise<Array<{ id: string; timestamp: string; data: Record<string, any> }>> {
-    try {
-      // Build query parameters
-      const params: Record<string, any> = {
-        log_name: logName,
-        limit
-      };
-
-      // Add search tokens
-      if (searchTokens.length > 0) {
-        // Use 'token' parameter for each token to match Java implementation
-        searchTokens.forEach(token => {
-          if (!params.token) {
-            params.token = [];
-          }
-          params.token.push(token);
-        });
-      }
-
-      const response = await this.apiClient.get(
-        `${this.baseUrl}/search`,
-        {
-          params,
-          headers: {
-            Authorization: `Bearer ${resourceToken}`
-          }
-        }
-      );
-
-      return response.data.results || [];
-    } catch (error) {
-      throw new LogError(
-        `Failed to search logs: ${error instanceof Error ? error.message : String(error)}`,
-        'search_logs_failed'
-      );
-    }
+    // Use the OpenAPI client
+    return this.openApiClient.searchLogs(logName, searchTokens, limit, resourceToken);
   }
 
   /**
@@ -203,23 +119,8 @@ export class LogsService {
    * @returns Promise that resolves to the log names
    */
   public async getLogNames(resourceToken: string): Promise<string[]> {
-    try {
-      const response = await this.apiClient.get(
-        `${this.baseUrl}/logs`,
-        {
-          headers: {
-            Authorization: `Bearer ${resourceToken}`
-          }
-        }
-      );
-
-      return response.data.logs || [];
-    } catch (error) {
-      throw new LogError(
-        `Failed to get log names: ${error instanceof Error ? error.message : String(error)}`,
-        'get_log_names_failed'
-      );
-    }
+    // Use the OpenAPI client
+    return this.openApiClient.getLogNames(resourceToken);
   }
 
   /**
@@ -354,35 +255,8 @@ export class LogsService {
     limit: number = 10,
     offset: number = 0
   ): Promise<PaginatedResult<LogEntry>> {
-    try {
-      const response = await this.apiClient.get(
-        `${this.baseUrl}/logs/${encryptedLogName}/entries`,
-        {
-          params: { limit, offset },
-          headers: {
-            Authorization: `Bearer ${authToken}`
-          }
-        }
-      );
-
-      const entries = response.data.entries || [];
-      const totalCount = response.data.total_count || 0;
-
-      return {
-        entries,
-        items: entries,
-        total: totalCount,
-        totalCount,
-        offset,
-        limit,
-        hasMore: (offset + entries.length) < totalCount
-      };
-    } catch (error) {
-      throw new LogError(
-        `Failed to get log entries: ${error instanceof Error ? error.message : String(error)}`,
-        'get_log_entries_failed'
-      );
-    }
+    // Use the OpenAPI client
+    return this.openApiClient.getLogEntries(authToken, encryptedLogName, limit, offset);
   }
 
   /**
@@ -398,23 +272,8 @@ export class LogsService {
     encryptedLogName: string,
     entryId: string
   ): Promise<LogEntry> {
-    try {
-      const response = await this.apiClient.get(
-        `${this.baseUrl}/logs/${encryptedLogName}/entries/${entryId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`
-          }
-        }
-      );
-
-      return response.data;
-    } catch (error) {
-      throw new LogError(
-        `Failed to get log entry: ${error instanceof Error ? error.message : String(error)}`,
-        'get_log_entry_failed'
-      );
-    }
+    // Use the OpenAPI client
+    return this.openApiClient.getLogEntry(authToken, encryptedLogName, entryId);
   }
 
   /**
@@ -430,37 +289,8 @@ export class LogsService {
     logName: string,
     searchOptions: LogSearchOptions
   ): Promise<PaginatedResult<LogEntry>> {
-    try {
-      const response = await this.apiClient.post(
-        `${this.baseUrl}/logs/${logName}/search`,
-        searchOptions,
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`
-          }
-        }
-      );
-
-      const entries = response.data.entries || [];
-      const totalCount = response.data.total_count || 0;
-      const offset = searchOptions.offset || 0;
-      const limit = searchOptions.limit || 10;
-
-      return {
-        entries,
-        items: entries,
-        total: totalCount,
-        totalCount,
-        offset,
-        limit,
-        hasMore: (offset + entries.length) < totalCount
-      };
-    } catch (error) {
-      throw new LogError(
-        `Failed to search log entries: ${error instanceof Error ? error.message : String(error)}`,
-        'search_log_entries_failed'
-      );
-    }
+    // Use the OpenAPI client
+    return this.openApiClient.searchLogEntries(authToken, logName, searchOptions);
   }
 
   /**

@@ -44,31 +44,31 @@ export class NeuralLogClient {
   constructor(options: NeuralLogClientOptions) {
     this.configService = new ConfigurationService(options);
 
-    // Create API client
+    // Create API client with initial URLs (will be updated during initialization)
     const apiClient = axios.create({
-      baseURL: this.configService.getServerUrl() || 'http://localhost:3000',
+      baseURL: this.configService.getServerUrlSync() || 'http://localhost:3000',
       timeout: 10000,
       headers: {
         'Content-Type': 'application/json'
       }
     });
 
-    // Create services
+    // Create services with initial URLs (will be updated during initialization)
     const cryptoService = new CryptoService();
     const authService = new AuthService(
-      this.configService.getAuthUrl() || 'http://localhost:3000',
+      this.configService.getAuthUrlSync() || 'http://localhost:3040',
       apiClient
     );
     const logsService = new LogsService(
-      this.configService.getServerUrl() || 'http://localhost:3030',
+      this.configService.getServerUrlSync() || 'http://localhost:3030',
       apiClient
     );
     const kekService = new KekService(
-      this.configService.getAuthUrl() || 'http://localhost:3000',
+      this.configService.getAuthUrlSync() || 'http://localhost:3040',
       apiClient
     );
     const tokenService = new TokenService(
-      this.configService.getAuthUrl() || 'http://localhost:3000',
+      this.configService.getAuthUrlSync() || 'http://localhost:3040',
       apiClient
     );
     const tenantId = this.configService.getTenantId();
@@ -105,6 +105,9 @@ export class NeuralLogClient {
    */
   public async initialize(): Promise<void> {
     try {
+      // Update service URLs from registry
+      await this.updateServiceUrls();
+
       // Initialize all clients
       await Promise.all([
         this.authClient.initialize(),
@@ -117,6 +120,33 @@ export class NeuralLogClient {
       this.initialized = true;
     } catch (error) {
       return this.handleError(error, 'initialize client', 'initialization_failed');
+    }
+  }
+
+  /**
+   * Update service URLs from registry
+   *
+   * @returns Promise that resolves when URLs are updated
+   */
+  private async updateServiceUrls(): Promise<void> {
+    try {
+      // Get URLs from registry via configuration service
+      const [serverUrl, authUrl] = await Promise.all([
+        this.configService.getServerUrl(),
+        this.configService.getAuthUrl()
+      ]);
+
+      // Update service URLs
+      this.authClient.setBaseUrl(authUrl);
+      this.logClient.setBaseUrl(serverUrl);
+      this.userClient.setBaseUrl(authUrl);
+      this.keyManagementClient.setBaseUrl(authUrl);
+      this.apiKeyClient.setBaseUrl(authUrl);
+
+      this.logger.info(`Updated service URLs from registry: server=${serverUrl}, auth=${authUrl}`);
+    } catch (error) {
+      this.logger.error('Failed to update service URLs from registry:', error);
+      // Continue with initialization using fallback URLs
     }
   }
 

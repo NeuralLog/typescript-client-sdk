@@ -4,6 +4,7 @@ import { AuthClient } from '../../../src/client/AuthClient';
 import { UserClient } from '../../../src/client/UserClient';
 import { KeyManagementClient } from '../../../src/client/KeyManagementClient';
 import { ApiKeyClient } from '../../../src/client/ApiKeyClient';
+import { ConfigurationService } from '../../../src/client/services/ConfigurationService';
 import axios from 'axios';
 
 // Mock the specialized clients
@@ -12,6 +13,9 @@ jest.mock('../../../src/client/AuthClient');
 jest.mock('../../../src/client/UserClient');
 jest.mock('../../../src/client/KeyManagementClient');
 jest.mock('../../../src/client/ApiKeyClient');
+
+// Mock the ConfigurationService
+jest.mock('../../../src/client/services/ConfigurationService');
 
 // Mock axios
 jest.mock('axios', () => ({
@@ -28,6 +32,8 @@ jest.mock('../../../src/crypto/CryptoService');
 jest.mock('../../../src/managers/KeyHierarchyManager');
 jest.mock('../../../src/managers/LogManager');
 jest.mock('../../../src/managers/UserManager');
+jest.mock('../../../src/registry/RegistryClient');
+jest.mock('../../../src/services/DiscoveryService');
 
 describe('NeuralLogClient', () => {
   let client: NeuralLogClient;
@@ -40,6 +46,18 @@ describe('NeuralLogClient', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Mock ConfigurationService methods
+    (ConfigurationService as jest.Mock).mockImplementation(() => ({
+      getServerUrl: jest.fn().mockResolvedValue('https://api.test.com'),
+      getAuthUrl: jest.fn().mockResolvedValue('https://auth.test.com'),
+      getServerUrlSync: jest.fn().mockReturnValue('https://api.test.com'),
+      getAuthUrlSync: jest.fn().mockReturnValue('https://auth.test.com'),
+      getTenantId: jest.fn().mockReturnValue('test-tenant'),
+      getApiKey: jest.fn().mockReturnValue('test-api-key'),
+      getConfig: jest.fn().mockReturnValue(mockOptions)
+    }));
+
     client = new NeuralLogClient(mockOptions);
   });
 

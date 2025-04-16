@@ -167,4 +167,14 @@ export class KeyManagementClient extends BaseClient {
       this.handleError(error, 'recover KEK versions', 'recover_kek_versions_failed');
     }
   }
+
+  /**
+   * Set the base URL for the client
+   *
+   * @param baseUrl The new base URL
+   */
+  public override setBaseUrl(baseUrl: string): void {
+    // Update the base URL for the key hierarchy manager
+    this.keyHierarchyManager.setBaseUrl(baseUrl);
+  }
 }

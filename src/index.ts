@@ -13,6 +13,8 @@ export { LogsService } from './logs/LogsService';
 export { AuthService } from './auth/AuthService';
 export { KekService } from './auth/KekService';
 export { TokenService } from './auth/TokenService';
+export { DiscoveryService } from './services/DiscoveryService';
+export { RegistryClient } from './registry/RegistryClient';
 
 // Crypto
 export { CryptoService } from './crypto/CryptoService';

@@ -1,6 +1,6 @@
 /**
  * Log Server API Types
- *
+ * 
  * THIS FILE IS AUTO-GENERATED - DO NOT EDIT DIRECTLY
  * Generated from OpenAPI schema
  */
@@ -97,16 +97,6 @@ export interface LogSearchOptions {
    */
   searchTokens?: string[];
   /**
-   * Start time for search range
-   * @format date-time
-   */
-  startTime?: string;
-  /**
-   * End time for search range
-   * @format date-time
-   */
-  endTime?: string;
-  /**
    * Maximum number of entries to return
    */
   limit?: number;
@@ -114,33 +104,27 @@ export interface LogSearchOptions {
    * Offset for pagination
    */
   offset?: number;
-  /**
-   * Sort order
-   */
-  sortOrder?: "asc" | "desc";
 }
 
-// Original PaginatedLogEntries from OpenAPI schema
-// This is replaced by the more complete version below
-// export interface PaginatedLogEntries {
-//   entries?: LogEntry[];
-//   /**
-//    * Total number of entries
-//    */
-//   total?: number;
-//   /**
-//    * Maximum number of entries returned
-//    */
-//   limit?: number;
-//   /**
-//    * Offset for pagination
-//    */
-//   offset?: number;
-//   /**
-//    * Whether there are more entries
-//    */
-//   hasMore?: boolean;
-// }
+export interface PaginatedLogEntries {
+  entries?: LogEntry[];
+  /**
+   * Total number of entries
+   */
+  total?: number;
+  /**
+   * Maximum number of entries returned
+   */
+  limit?: number;
+  /**
+   * Offset for pagination
+   */
+  offset?: number;
+  /**
+   * Whether there are more entries
+   */
+  hasMore?: boolean;
+}
 
 export interface Error {
   status: string;

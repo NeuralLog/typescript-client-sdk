@@ -95,8 +95,8 @@ export class UserManager {
       // Convert to Base64
       const publicKeyBase64 = this.cryptoService.arrayBufferToBase64(publicKeyData);
 
-      // Upload the public key
-      await this.authService.uploadPublicKey(publicKeyBase64, authToken);
+      // This method is not implemented in the OpenAPI client yet
+      throw new LogError('Upload public key is not implemented in the OpenAPI client yet', 'not_implemented');
     } catch (error) {
       throw new LogError(
         `Failed to upload user public key: ${error instanceof Error ? error.message : String(error)}`,
@@ -118,23 +118,8 @@ export class UserManager {
         throw new Error('Not authenticated');
       }
 
-      // Get the public key from the server
-      const publicKeyResponse = await this.authService.getPublicKey(userId, authToken);
-
-      // Convert from Base64
-      const publicKeyData = this.cryptoService.base64ToArrayBuffer(publicKeyResponse.publicKey);
-
-      // Import the public key
-      return await crypto.subtle.importKey(
-        'spki',
-        publicKeyData,
-        {
-          name: 'RSA-OAEP',
-          hash: 'SHA-256'
-        },
-        true,
-        ['encrypt']
-      );
+      // This method is not implemented in the OpenAPI client yet
+      throw new LogError('Get public key is not implemented in the OpenAPI client yet', 'not_implemented');
     } catch (error) {
       throw new LogError(
         `Failed to get user public key: ${error instanceof Error ? error.message : String(error)}`,
@@ -154,7 +139,8 @@ export class UserManager {
       if (!authToken) {
         throw new Error('Not authenticated');
       }
-      return await this.authService.getUsers(authToken);
+      // This method is not implemented in the OpenAPI client yet
+      throw new LogError('Get users is not implemented in the OpenAPI client yet', 'not_implemented');
     } catch (error) {
       throw new LogError(
         `Failed to get users: ${error instanceof Error ? error.message : String(error)}`,
@@ -174,7 +160,8 @@ export class UserManager {
       if (!authToken) {
         throw new Error('Not authenticated');
       }
-      return await this.authService.getPendingAdminPromotions(authToken);
+      // This method is not implemented in the OpenAPI client yet
+      throw new LogError('Get pending admin promotions is not implemented in the OpenAPI client yet', 'not_implemented');
     } catch (error) {
       throw new LogError(
         `Failed to get pending admin promotions: ${error instanceof Error ? error.message : String(error)}`,
@@ -203,27 +190,8 @@ export class UserManager {
       // Get the user key pair
       const keyPair = await this.getUserKeyPair(userPassword);
 
-      // Get the promotion
-      const promotion = await this.authService.getAdminPromotion(promotionId, authToken);
-
-      // Get the encrypted share for this user
-      const encryptedShare = promotion.encryptedShares[this.getCurrentUserId()];
-
-      if (!encryptedShare) {
-        throw new Error('No encrypted share found for this user');
-      }
-
-      // Decrypt the share
-      const shareString = await this.cryptoService.decryptWithPrivateKey(
-        keyPair.privateKey,
-        encryptedShare
-      );
-
-      // Parse the share
-      const share = typeof shareString === 'string' ? JSON.parse(shareString) : shareString;
-
-      // Approve the promotion
-      await this.authService.approveAdminPromotion(promotionId, share, authToken);
+      // This method is not implemented in the OpenAPI client yet
+      throw new LogError('Approve admin promotion is not implemented in the OpenAPI client yet', 'not_implemented');
     } catch (error) {
       throw new LogError(
         `Failed to approve admin promotion: ${error instanceof Error ? error.message : String(error)}`,
@@ -245,12 +213,23 @@ export class UserManager {
         throw new Error('Not authenticated');
       }
 
-      await this.authService.rejectAdminPromotion(promotionId, authToken);
+      // This method is not implemented in the OpenAPI client yet
+      throw new LogError('Reject admin promotion is not implemented in the OpenAPI client yet', 'not_implemented');
     } catch (error) {
       throw new LogError(
         `Failed to reject admin promotion: ${error instanceof Error ? error.message : String(error)}`,
         'reject_admin_promotion_failed'
       );
     }
+  }
+
+  /**
+   * Set the base URL for the auth service
+   *
+   * @param baseUrl The new base URL
+   */
+  public setBaseUrl(baseUrl: string): void {
+    // Update the base URL for the auth service
+    this.authService.setBaseUrl(baseUrl);
   }
 }

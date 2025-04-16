@@ -9,10 +9,10 @@ import { KEKVersion } from '../types';
 export class KeyHierarchyManager {
   private cryptoService: CryptoService;
   private kekService: KekService;
-  
+
   /**
    * Create a new KeyHierarchyManager
-   * 
+   *
    * @param cryptoService Crypto service
    * @param kekService KEK service
    */
@@ -20,10 +20,10 @@ export class KeyHierarchyManager {
     this.cryptoService = cryptoService;
     this.kekService = kekService;
   }
-  
+
   /**
    * Initialize the key hierarchy from a recovery phrase
-   * 
+   *
    * @param tenantId Tenant ID
    * @param recoveryPhrase Recovery phrase
    * @param versions KEK versions to recover (if not provided, only the latest version is recovered)
@@ -40,7 +40,7 @@ export class KeyHierarchyManager {
         const kekVersionsResponse = await this.kekService.getKEKVersions(localStorage.getItem('authToken') || '');
         versions = kekVersionsResponse.map(v => v.id);
       }
-      
+
       // Initialize the key hierarchy
       await this.cryptoService.initializeKeyHierarchy(tenantId, recoveryPhrase, versions);
     } catch (error) {
@@ -50,10 +50,10 @@ export class KeyHierarchyManager {
       );
     }
   }
-  
+
   /**
    * Initialize the key hierarchy from a mnemonic phrase
-   * 
+   *
    * @param tenantId Tenant ID
    * @param mnemonicPhrase BIP-39 mnemonic phrase
    * @param versions KEK versions to recover (if not provided, only the latest version is recovered)
@@ -70,13 +70,13 @@ export class KeyHierarchyManager {
       if (!mnemonicService.validateMnemonic(mnemonicPhrase)) {
         throw new LogError('Invalid mnemonic phrase', 'invalid_mnemonic');
       }
-      
+
       // Get available KEK versions if not provided
       if (!versions || versions.length === 0) {
         const kekVersionsResponse = await this.kekService.getKEKVersions(localStorage.getItem('authToken') || '');
         versions = kekVersionsResponse.map(v => v.id);
       }
-      
+
       // Initialize the key hierarchy
       await this.cryptoService.initializeKeyHierarchy(tenantId, mnemonicPhrase, versions);
     } catch (error) {
@@ -86,10 +86,10 @@ export class KeyHierarchyManager {
       );
     }
   }
-  
+
   /**
    * Initialize the key hierarchy from an API key
-   * 
+   *
    * @param tenantId Tenant ID
    * @param apiKey API key
    * @param versions KEK versions to recover (if not provided, only the latest version is recovered)
@@ -106,18 +106,18 @@ export class KeyHierarchyManager {
         const kekVersionsResponse = await this.kekService.getKEKVersions(apiKey);
         versions = kekVersionsResponse.map(v => v.id);
       }
-      
+
       // Derive the master secret from the API key
       const masterSecret = await this.cryptoService.deriveMasterSecret(tenantId, apiKey);
-      
+
       // Derive the master KEK
       await this.cryptoService.deriveMasterKEK(masterSecret);
-      
+
       // Derive operational KEKs for all versions
       for (const version of versions) {
         await this.cryptoService.deriveOperationalKEK(version);
       }
-      
+
       // Set the current KEK version to the latest one
       if (versions.length > 0) {
         const latestVersion = versions.sort().pop();
@@ -132,10 +132,10 @@ export class KeyHierarchyManager {
       );
     }
   }
-  
+
   /**
    * Recover specific KEK versions
-   * 
+   *
    * @param versions KEK versions to recover
    * @returns Promise that resolves when the versions are recovered
    */
@@ -149,10 +149,10 @@ export class KeyHierarchyManager {
       );
     }
   }
-  
+
   /**
    * Get all KEK versions
-   * 
+   *
    * @param authToken Authentication token or API key
    * @returns Promise that resolves to the KEK versions
    */
@@ -166,10 +166,10 @@ export class KeyHierarchyManager {
       );
     }
   }
-  
+
   /**
    * Create a new KEK version
-   * 
+   *
    * @param reason Reason for creating the new version
    * @param authToken Authentication token
    * @returns Promise that resolves to the new KEK version
@@ -184,10 +184,10 @@ export class KeyHierarchyManager {
       );
     }
   }
-  
+
   /**
    * Rotate KEK
-   * 
+   *
    * @param reason Reason for rotation
    * @param removedUsers Array of user IDs to remove
    * @param authToken Authentication token
@@ -203,10 +203,10 @@ export class KeyHierarchyManager {
       );
     }
   }
-  
+
   /**
    * Provision KEK for a user
-   * 
+   *
    * @param userId User ID
    * @param kekVersionId KEK version ID
    * @param authToken Authentication token
@@ -216,13 +216,13 @@ export class KeyHierarchyManager {
     try {
       // Get the current operational KEK
       const operationalKEK = this.cryptoService.getCurrentOperationalKEK();
-      
+
       // Encrypt the KEK for the user
       const encryptedBlob = JSON.stringify({
         data: this.cryptoService.arrayBufferToBase64(operationalKEK),
         version: kekVersionId
       });
-      
+
       // Store the encrypted KEK blob for the user
       await this.kekService.provisionKEKBlob(userId, kekVersionId, encryptedBlob, authToken);
     } catch (error) {
@@ -232,10 +232,10 @@ export class KeyHierarchyManager {
       );
     }
   }
-  
+
   /**
    * Split the KEK into shares using Shamir's Secret Sharing
-   * 
+   *
    * @param numShares The number of shares to create
    * @param threshold The minimum number of shares required to reconstruct the KEK
    * @returns Promise that resolves to the serialized shares
@@ -244,10 +244,10 @@ export class KeyHierarchyManager {
     try {
       // Get the current operational KEK
       const operationalKEK = this.cryptoService.getCurrentOperationalKEK();
-      
+
       // Split the KEK into shares
       const shares = await this.cryptoService.splitKEK(operationalKEK, numShares, threshold);
-      
+
       // Serialize the shares
       return shares.map(share => this.cryptoService.serializeShare(share));
     } catch (error) {
@@ -257,20 +257,20 @@ export class KeyHierarchyManager {
       );
     }
   }
-  
+
   /**
    * Reconstruct the KEK from shares
-   * 
+   *
    * @param serializedShares The serialized shares to use for reconstruction
    * @returns Promise that resolves to the reconstructed KEK
    */
   public async reconstructKEKFromShares(serializedShares: any[]): Promise<Uint8Array> {
     try {
       // Deserialize the shares
-      const shares = serializedShares.map(serializedShare => 
+      const shares = serializedShares.map(serializedShare =>
         this.cryptoService.deserializeShare(serializedShare)
       );
-      
+
       // Reconstruct the KEK
       return await this.cryptoService.reconstructKEK(shares);
     } catch (error) {
@@ -279,5 +279,15 @@ export class KeyHierarchyManager {
         'reconstruct_kek_failed'
       );
     }
+  }
+
+  /**
+   * Set the base URL for the KEK service
+   *
+   * @param baseUrl The new base URL
+   */
+  public setBaseUrl(baseUrl: string): void {
+    // Update the base URL for the KEK service
+    this.kekService.setBaseUrl(baseUrl);
   }
 }

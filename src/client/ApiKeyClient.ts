@@ -73,4 +73,14 @@ export class ApiKeyClient extends BaseClient {
       this.handleError(error, 'revoke API key', 'revoke_api_key_failed');
     }
   }
+
+  /**
+   * Set the base URL for the client
+   *
+   * @param baseUrl The new base URL
+   */
+  public override setBaseUrl(baseUrl: string): void {
+    // Update the base URL for the auth manager
+    this.authManager.setBaseUrl(baseUrl);
+  }
 }

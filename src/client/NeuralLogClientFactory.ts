@@ -46,7 +46,7 @@ export class NeuralLogClientFactory {
 
     // Create API client
     const apiClient = axios.create({
-      baseURL: configService.getServerUrl() || 'http://localhost:3000',
+      baseURL: configService.getServerUrlSync() || 'http://localhost:3000',
       timeout: 10000,
       headers: {
         'Content-Type': 'application/json'
@@ -56,15 +56,15 @@ export class NeuralLogClientFactory {
     // Create services
     const cryptoService = new CryptoService();
     const logsService = new LogsService(
-      configService.getServerUrl() || 'http://localhost:3030',
+      configService.getServerUrlSync() || 'http://localhost:3030',
       apiClient
     );
     const authService = new AuthService(
-      configService.getAuthUrl() || 'http://localhost:3000',
+      configService.getAuthUrlSync() || 'http://localhost:3000',
       apiClient
     );
     const kekService = new KekService(
-      configService.getAuthUrl() || 'http://localhost:3000',
+      configService.getAuthUrlSync() || 'http://localhost:3000',
       apiClient
     );
 
@@ -101,7 +101,7 @@ export class NeuralLogClientFactory {
 
     // Create API client
     const apiClient = axios.create({
-      baseURL: configService.getServerUrl() || 'http://localhost:3000',
+      baseURL: configService.getServerUrlSync() || 'http://localhost:3000',
       timeout: 10000,
       headers: {
         'Content-Type': 'application/json'
@@ -111,15 +111,15 @@ export class NeuralLogClientFactory {
     // Create services
     const cryptoService = new CryptoService();
     const authService = new AuthService(
-      configService.getAuthUrl() || 'http://localhost:3000',
+      configService.getAuthUrlSync() || 'http://localhost:3000',
       apiClient
     );
     const tokenService = new TokenService(
-      configService.getAuthUrl() || 'http://localhost:3000',
+      configService.getAuthUrlSync() || 'http://localhost:3000',
       apiClient
     );
     const kekService = new KekService(
-      configService.getAuthUrl() || 'http://localhost:3000',
+      configService.getAuthUrlSync() || 'http://localhost:3000',
       apiClient
     );
 
@@ -155,7 +155,7 @@ export class NeuralLogClientFactory {
 
     // Create API client
     const apiClient = axios.create({
-      baseURL: configService.getServerUrl() || 'http://localhost:3000',
+      baseURL: configService.getServerUrlSync() || 'http://localhost:3000',
       timeout: 10000,
       headers: {
         'Content-Type': 'application/json'
@@ -165,11 +165,11 @@ export class NeuralLogClientFactory {
     // Create services
     const cryptoService = new CryptoService();
     const authService = new AuthService(
-      configService.getAuthUrl() || 'http://localhost:3000',
+      configService.getAuthUrlSync() || 'http://localhost:3000',
       apiClient
     );
     const kekService = new KekService(
-      configService.getAuthUrl() || 'http://localhost:3000',
+      configService.getAuthUrlSync() || 'http://localhost:3000',
       apiClient
     );
 
@@ -206,7 +206,7 @@ export class NeuralLogClientFactory {
 
     // Create API client
     const apiClient = axios.create({
-      baseURL: configService.getServerUrl() || 'http://localhost:3000',
+      baseURL: configService.getServerUrlSync() || 'http://localhost:3000',
       timeout: 10000,
       headers: {
         'Content-Type': 'application/json'
@@ -216,11 +216,11 @@ export class NeuralLogClientFactory {
     // Create services
     const cryptoService = new CryptoService();
     const authService = new AuthService(
-      configService.getAuthUrl() || 'http://localhost:3000',
+      configService.getAuthUrlSync() || 'http://localhost:3000',
       apiClient
     );
     const kekService = new KekService(
-      configService.getAuthUrl() || 'http://localhost:3000',
+      configService.getAuthUrlSync() || 'http://localhost:3000',
       apiClient
     );
 
@@ -256,7 +256,7 @@ export class NeuralLogClientFactory {
 
     // Create API client
     const apiClient = axios.create({
-      baseURL: configService.getServerUrl() || 'http://localhost:3000',
+      baseURL: configService.getServerUrlSync() || 'http://localhost:3000',
       timeout: 10000,
       headers: {
         'Content-Type': 'application/json'
@@ -266,11 +266,11 @@ export class NeuralLogClientFactory {
     // Create services
     const cryptoService = new CryptoService();
     const authService = new AuthService(
-      configService.getAuthUrl() || 'http://localhost:3000',
+      configService.getAuthUrlSync() || 'http://localhost:3000',
       apiClient
     );
     const kekService = new KekService(
-      configService.getAuthUrl() || 'http://localhost:3000',
+      configService.getAuthUrlSync() || 'http://localhost:3000',
       apiClient
     );
 

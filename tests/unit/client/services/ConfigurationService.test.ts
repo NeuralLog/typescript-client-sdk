@@ -7,36 +7,44 @@ describe('ConfigurationService', () => {
       expect(service.getTenantId()).toBe('default');
     });
 
-    it('should initialize with the provided options', () => {
+    it('should initialize with the provided options', async () => {
       const options = {
         tenantId: 'test-tenant',
         serverUrl: 'https://api.test.com',
         authUrl: 'https://auth.test.com',
         registryUrl: 'https://registry.test.com',
-        apiKey: 'test-api-key'
+        apiKey: 'test-api-key',
+        skipRegistryLookup: true
       };
 
       const service = new ConfigurationService(options);
 
       expect(service.getTenantId()).toBe('test-tenant');
-      expect(service.getServerUrl()).toBe('https://api.test.com');
-      expect(service.getAuthUrl()).toBe('https://auth.test.com');
+      expect(service.getServerUrlSync()).toBe('https://api.test.com');
+      expect(service.getAuthUrlSync()).toBe('https://auth.test.com');
       expect(service.getRegistryUrl()).toBe('https://registry.test.com');
       expect(service.getApiKey()).toBe('test-api-key');
+
+      expect(await service.getServerUrl()).toBe('https://api.test.com');
+      expect(await service.getAuthUrl()).toBe('https://auth.test.com');
     });
 
-    it('should initialize with default values if not provided', () => {
+    it('should initialize with default values if not provided', async () => {
       const options = {
-        tenantId: 'test-tenant'
+        tenantId: 'test-tenant',
+        skipRegistryLookup: true
       };
 
       const service = new ConfigurationService(options);
 
       expect(service.getTenantId()).toBe('test-tenant');
-      expect(service.getServerUrl()).toBeUndefined();
-      expect(service.getAuthUrl()).toBeUndefined();
+      expect(service.getServerUrlSync()).toBeUndefined();
+      expect(service.getAuthUrlSync()).toBeUndefined();
       expect(service.getRegistryUrl()).toBeUndefined();
       expect(service.getApiKey()).toBeUndefined();
+
+      expect(await service.getServerUrl()).toBe('http://localhost:3030');
+      expect(await service.getAuthUrl()).toBe('http://localhost:3040');
     });
   });
 
@@ -48,32 +56,40 @@ describe('ConfigurationService', () => {
   });
 
   describe('getServerUrl', () => {
-    it('should return the server URL if provided', () => {
+    it('should return the server URL if provided', async () => {
       const service = new ConfigurationService({
         tenantId: 'test-tenant',
-        serverUrl: 'https://api.test.com'
+        serverUrl: 'https://api.test.com',
+        skipRegistryLookup: true
       });
-      expect(service.getServerUrl()).toBe('https://api.test.com');
+      expect(await service.getServerUrl()).toBe('https://api.test.com');
     });
 
-    it('should return undefined if server URL is not provided', () => {
-      const service = new ConfigurationService({ tenantId: 'test-tenant' });
-      expect(service.getServerUrl()).toBeUndefined();
+    it('should return default URL if server URL is not provided', async () => {
+      const service = new ConfigurationService({
+        tenantId: 'test-tenant',
+        skipRegistryLookup: true
+      });
+      expect(await service.getServerUrl()).toBe('http://localhost:3030');
     });
   });
 
   describe('getAuthUrl', () => {
-    it('should return the auth URL if provided', () => {
+    it('should return the auth URL if provided', async () => {
       const service = new ConfigurationService({
         tenantId: 'test-tenant',
-        authUrl: 'https://auth.test.com'
+        authUrl: 'https://auth.test.com',
+        skipRegistryLookup: true
       });
-      expect(service.getAuthUrl()).toBe('https://auth.test.com');
+      expect(await service.getAuthUrl()).toBe('https://auth.test.com');
     });
 
-    it('should return undefined if auth URL is not provided', () => {
-      const service = new ConfigurationService({ tenantId: 'test-tenant' });
-      expect(service.getAuthUrl()).toBeUndefined();
+    it('should return default URL if auth URL is not provided', async () => {
+      const service = new ConfigurationService({
+        tenantId: 'test-tenant',
+        skipRegistryLookup: true
+      });
+      expect(await service.getAuthUrl()).toBe('http://localhost:3040');
     });
   });
 

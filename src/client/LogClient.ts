@@ -88,5 +88,13 @@ export class LogClient extends BaseClient {
     }
   }
 
-
+  /**
+   * Set the base URL for the client
+   *
+   * @param baseUrl The new base URL
+   */
+  public override setBaseUrl(baseUrl: string): void {
+    // Update the base URL for the log manager
+    this.logManager.setBaseUrl(baseUrl);
+  }
 }

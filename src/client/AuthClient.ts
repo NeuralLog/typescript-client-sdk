@@ -116,5 +116,14 @@ export class AuthClient extends BaseClient {
     }
   }
 
-
+  /**
+   * Set the base URL for the client
+   *
+   * @param baseUrl The new base URL
+   */
+  public override setBaseUrl(baseUrl: string): void {
+    // Update the base URL for the auth manager and token service
+    this.authManager.setBaseUrl(baseUrl);
+    this.tokenService.setBaseUrl(baseUrl);
+  }
 }

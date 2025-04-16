@@ -130,4 +130,14 @@ export class UserClient extends BaseClient {
       this.handleError(error, 'get user public key', 'get_user_public_key_failed');
     }
   }
+
+  /**
+   * Set the base URL for the client
+   *
+   * @param baseUrl The new base URL
+   */
+  public override setBaseUrl(baseUrl: string): void {
+    // Update the base URL for the user manager
+    this.userManager.setBaseUrl(baseUrl);
+  }
 }

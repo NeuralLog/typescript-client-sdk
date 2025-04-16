@@ -3,13 +3,8 @@ import { LogsService } from '../logs/LogsService';
 import { AuthService } from '../auth/AuthService';
 import { AuthManager } from '../auth/AuthManager';
 import { LogError } from '../errors';
-import {
-  Log,
-  LogEntry,
-  LogSearchOptions,
-  PaginatedResult
-} from '../types';
 import { LoggerService } from '../utils/LoggerService';
+import { LogServerClient } from '../logs/LogServerClient';
 
 /**
  * Manager for log operations
@@ -20,10 +15,9 @@ import { LoggerService } from '../utils/LoggerService';
 export class LogManager {
   private logger = LoggerService.getInstance(process.env.NODE_ENV === 'test');
   private cryptoService: CryptoService;
-  private logsService: LogsService;
+  private logServerClient: LogServerClient;
   private authService: AuthService;
   private authManager: AuthManager;
-  private tenantId: string;
 
   /**
    * Create a new LogManager
@@ -39,13 +33,19 @@ export class LogManager {
     logsService: LogsService,
     authService: AuthService,
     authManager: AuthManager,
-    tenantId: string
+    private tenantId: string
   ) {
     this.cryptoService = cryptoService;
-    this.logsService = logsService;
     this.authService = authService;
     this.authManager = authManager;
-    this.tenantId = tenantId;
+
+    // Create the LogServerClient
+    this.logServerClient = new LogServerClient(
+      logsService.getBaseUrl(),
+      cryptoService,
+      authService,
+      tenantId
+    );
   }
 
   /**
@@ -100,12 +100,11 @@ export class LogManager {
       // Get resource token
       const resourceToken = await this.authService.getResourceToken(
         authToken,
-        this.tenantId,
         `logs/${encryptedLogName}`
       );
 
-      // Send log to server
-      return await this.logsService.appendLog(encryptedLogName, encryptedData, resourceToken, searchTokens);
+      // Send log to server using the LogServerClient
+      return await this.logServerClient.appendLog(encryptedLogName, encryptedData, resourceToken, searchTokens);
     } catch (error) {
       throw new LogError(
         `Failed to log data: ${error instanceof Error ? error.message : String(error)}`,
@@ -135,12 +134,12 @@ export class LogManager {
       // Get resource token
       const resourceToken = await this.authService.getResourceToken(
         authToken,
-        this.tenantId,
         `logs/${encryptedLogName}`
       );
 
-      // Get logs from server
-      const encryptedLogs = await this.logsService.getLogs(
+      // Get logs from server using the LogServerClient
+      const encryptedLogs = await this.logServerClient.getLogs(
+        encryptedLogName,
         resourceToken,
         options.limit || 100
       );
@@ -193,7 +192,6 @@ export class LogManager {
       // Get resource token
       const resourceToken = await this.authService.getResourceToken(
         authToken,
-        this.tenantId,
         `logs/${encryptedLogName}`
       );
 
@@ -201,8 +199,8 @@ export class LogManager {
       const searchKey = await this.cryptoService.deriveSearchKey();
       const searchTokens = await this.cryptoService.generateSearchTokens(options.query, searchKey);
 
-      // Search logs on server
-      const encryptedResults = await this.logsService.searchLogs(
+      // Search logs on server using the LogServerClient
+      const encryptedResults = await this.logServerClient.searchLogs(
         encryptedLogName,
         searchTokens,
         options.limit || 100,
@@ -234,5 +232,13 @@ export class LogManager {
     }
   }
 
-
+  /**
+   * Set the base URL for the log server client
+   *
+   * @param baseUrl The new base URL
+   */
+  public setBaseUrl(baseUrl: string): void {
+    // Update the base URL for the log server client
+    this.logServerClient.setBaseUrl(baseUrl);
+  }
 }

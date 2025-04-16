@@ -429,4 +429,14 @@ export class AuthManager {
       );
     }
   }
+
+  /**
+   * Set the base URL for the auth service
+   *
+   * @param baseUrl The new base URL
+   */
+  public setBaseUrl(baseUrl: string): void {
+    // Update the base URL for the auth service
+    this.authService.setBaseUrl(baseUrl);
+  }
 }

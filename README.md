@@ -18,6 +18,7 @@ A zero-knowledge TypeScript client SDK for the NeuralLog system, designed to pro
 - **Cross-Platform**: Works in browsers, Node.js, and React Native
 - **TypeScript Support**: Full TypeScript definitions
 - **Modular Architecture**: Specialized client classes for different domains
+- **OpenAPI Integration**: Generated client from OpenAPI specification
 
 ## Installation
 
@@ -27,7 +28,7 @@ npm install @neurallog/client-sdk
 
 ## Architecture
 
-The SDK is designed using a facade pattern, where the main `NeuralLogClient` class delegates to specialized client classes:
+The SDK is designed using a facade pattern, where the main `NeuralLogClient` class delegates to specialized client classes. It also uses an OpenAPI generated client for interacting with the log server:
 
 - `LogClient`: For log operations (logging, retrieving, searching)
 - `AuthClient`: For authentication operations (login, logout, permissions)
@@ -41,6 +42,7 @@ This architecture provides several benefits:
 2. **Better Testability**: Smaller classes are easier to test in isolation
 3. **Enhanced Flexibility**: Users can use just the clients they need
 4. **Backward Compatibility**: The facade pattern ensures existing code continues to work
+5. **API Consistency**: The OpenAPI generated client ensures consistency with the server API
 
 ## Usage
 
@@ -321,6 +323,7 @@ Detailed documentation is available in the [docs](./docs) directory:
 - [API Reference](./docs/api.md)
 - [Configuration](./docs/configuration.md)
 - [Architecture](./docs/architecture.md)
+- [OpenAPI Client](./docs/openapi-client.md)
 - [Examples](./docs/examples)
 
 For integration guides and tutorials, visit the [NeuralLog Documentation Site](https://neurallog.github.io/docs/).
